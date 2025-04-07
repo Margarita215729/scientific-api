@@ -1,0 +1,188 @@
+openapi: 3.1.0
+info:
+  title: Scientific Assistant API
+  version: 2.0.0
+  description: >
+    API для кастомного GPT, обеспечивающий доступ к научным данным, визуализации графов,
+    извлечению текста из статей (arXiv, Semantic Scholar, NASA ADS), датасетам (OpenML)
+    и сохранению результатов в Google Drive.
+
+servers:
+  - url: https://your-vercel-app-name.vercel.app/api
+
+paths:
+
+  /arxiv/fulltext:
+    get:
+      operationId: getArxivFullText
+      summary: Получить текст статьи с arXiv (включая PDF)
+      parameters:
+        - name: keywords
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Статья с arXiv
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  authors:
+                    type: array
+                    items:
+                      type: string
+                  abstract:
+                    type: string
+                  text:
+                    type: string
+                  source:
+                    type: string
+
+  /semantic/fulltext:
+    get:
+      operationId: getSemanticFullText
+      summary: Получить текст статьи с Semantic Scholar
+      parameters:
+        - name: keywords
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Статья с Semantic Scholar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  abstract:
+                    type: string
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        heading:
+                          type: string
+                        content:
+                          type: string
+
+  /nasa/abstracts:
+    get:
+      operationId: getNasaAbstracts
+      summary: Получить аннотации NASA ADS по запросу
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Результаты из NASA ADS
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /openml/data:
+    get:
+      operationId: getOpenMLData
+      summary: Получить датасеты по теме графов и физики
+      parameters:
+        - name: tag
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [csv, json]
+            default: csv
+      responses:
+        '200':
+          description: Датасет
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /graph/visualize:
+    post:
+      operationId: visualizeGraph
+      summary: Сгенерировать изображение графа
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    type: string
+                edges:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        '200':
+          description: Граф в виде base64 и код
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image_base64:
+                    type: string
+                  python_code:
+                    type: string
+
+  /drive/upload:
+    post:
+      operationId: uploadToDrive
+      summary: Сохранить файл в Google Drive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                mime_type:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Ответ от Google Drive API
+          content:
+            application/json:
+              schema:
+                type: object
