@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+requests
+feedparser
+PyMuPDF
+networkx
+matplotlib
+python-multipart
