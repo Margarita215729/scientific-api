@@ -186,3 +186,44 @@ paths:
             application/json:
               schema:
                 type: object
+
+      /drive/list:
+    get:
+      operationId: listDriveFiles
+      summary: Получить список файлов в Google Drive
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: object
+
+      /drive/file:
+    get:
+      operationId: getDriveFile
+      summary: Скачать файл из Google Drive по ID
+      parameters:
+        - name: file_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Содержимое файла
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+    
