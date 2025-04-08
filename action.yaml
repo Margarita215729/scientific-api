@@ -7,7 +7,7 @@ info:
     визуализации графов и интеграции с Google Drive.
 
 servers:
-  - url: https://scientific-api.vercel.app  # ЗАМЕНИ на твой URL
+  - url: https://scientific-api.vercel.app 
 
 paths:
 
