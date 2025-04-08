@@ -1,21 +1,140 @@
 openapi: 3.1.0
 info:
   title: Scientific Assistant API
-  version: 2.0.0
+  version: 2.1.0
   description: >
-    API для кастомного GPT, обеспечивающий доступ к научным данным, визуализации графов,
-    извлечению текста из статей (arXiv, Semantic Scholar, NASA ADS), датасетам (OpenML)
-    и сохранению результатов в Google Drive.
+    API для кастомного GPT, обеспечивающий доступ к научным статьям, данным,
+    визуализации графов и интеграции с Google Drive.
 
 servers:
-  - url: https://scientific-api.vercel.app
+  - url: https://scientific-api.vercel.app  # ЗАМЕНИ на твой URL
 
 paths:
+
+  /drive/upload:
+    post:
+      operationId: uploadToDrive
+      summary: Загрузить файл в Google Drive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                mime_type:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Результат загрузки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  mimeType:
+                    type: string
+
+  /drive/list:
+    get:
+      operationId: listDriveFiles
+      summary: Получить список файлов из Google Drive
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        mimeType:
+                          type: string
+                        modifiedTime:
+                          type: string
+
+  /drive/file:
+    get:
+      operationId: downloadDriveFile
+      summary: Скачать файл из Google Drive по ID
+      parameters:
+        - name: file_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Содержимое файла
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+
+  /graph/visualize:
+    post:
+      operationId: visualizeGraph
+      summary: Сгенерировать граф по узлам и связям
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    type: string
+                edges:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        '200':
+          description: Картинка и Python-код графа
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image_base64:
+                    type: string
+                  python_code:
+                    type: string
 
   /arxiv/fulltext:
     get:
       operationId: getArxivFullText
-      summary: Получить текст статьи с arXiv (включая PDF)
+      summary: Получить текст статьи с arXiv
       parameters:
         - name: keywords
           in: query
@@ -51,7 +170,7 @@ paths:
   /semantic/fulltext:
     get:
       operationId: getSemanticFullText
-      summary: Получить текст статьи с Semantic Scholar
+      summary: Получить статью из Semantic Scholar
       parameters:
         - name: keywords
           in: query
@@ -65,7 +184,7 @@ paths:
             default: 1
       responses:
         '200':
-          description: Статья с Semantic Scholar
+          description: Результаты поиска
           content:
             application/json:
               schema:
@@ -88,7 +207,7 @@ paths:
   /nasa/abstracts:
     get:
       operationId: getNasaAbstracts
-      summary: Получить аннотации NASA ADS по запросу
+      summary: Получить аннотации из NASA ADS
       parameters:
         - name: query
           in: query
@@ -97,16 +216,30 @@ paths:
             type: string
       responses:
         '200':
-          description: Результаты из NASA ADS
+          description: Результаты NASA
           content:
             application/json:
               schema:
                 type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        abstract:
+                          type: string
+                        authors:
+                          type: array
+                          items:
+                            type: string
 
   /openml/data:
     get:
       operationId: getOpenMLData
-      summary: Получить датасеты по теме графов и физики
+      summary: Получить датасет с OpenML
       parameters:
         - name: tag
           in: query
@@ -122,108 +255,13 @@ paths:
             default: csv
       responses:
         '200':
-          description: Датасет
+          description: Данные из OpenML
           content:
             application/json:
               schema:
                 type: object
-
-  /graph/visualize:
-    post:
-      operationId: visualizeGraph
-      summary: Сгенерировать изображение графа
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nodes:
-                  type: array
-                  items:
-                    type: string
-                edges:
-                  type: array
-                  items:
+                properties:
+                  data:
                     type: array
                     items:
-                      type: string
-      responses:
-        '200':
-          description: Граф в виде base64 и код
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  image_base64:
-                    type: string
-                  python_code:
-                    type: string
-
-  /drive/upload:
-    post:
-      operationId: uploadToDrive
-      summary: Сохранить файл в Google Drive
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                filename:
-                  type: string
-                mime_type:
-                  type: string
-                content:
-                  type: string
-      responses:
-        '200':
-          description: Ответ от Google Drive API
-          content:
-            application/json:
-              schema:
-                type: object
-
-      /drive/list:
-    get:
-      operationId: listDriveFiles
-      summary: Получить список файлов в Google Drive
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 5
-      responses:
-        '200':
-          description: Список файлов
-          content:
-            application/json:
-              schema:
-                type: object
-
-      /drive/file:
-    get:
-      operationId: getDriveFile
-      summary: Скачать файл из Google Drive по ID
-      parameters:
-        - name: file_id
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Содержимое файла
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: string
-    
+                      type: object
