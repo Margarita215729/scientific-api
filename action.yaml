@@ -8,7 +8,7 @@ info:
     и сохранению результатов в Google Drive.
 
 servers:
-  - url: https://your-vercel-app-name.vercel.app/api
+  - url: https://scientific-api.vercel.app
 
 paths:
 
