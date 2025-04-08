@@ -5,6 +5,9 @@ import tempfile
 import os
 
 def download_and_parse_pdf(url):
+    """
+    Загружает PDF по ссылке и извлекает текст с помощью PyMuPDF
+    """
     response = requests.get(url)
     if response.status_code != 200:
         return "[PDF не доступен]"
@@ -25,8 +28,12 @@ def download_and_parse_pdf(url):
     return text or "[Текст из PDF не извлечён]"
 
 def fetch_arxiv_fulltext(keywords, max_results):
+    """
+    Ищет статьи по ключевым словам и возвращает текст первой найденной статьи
+    """
     url = f"http://export.arxiv.org/api/query?search_query=all:{keywords}&start=0&max_results={max_results}"
     feed = feedparser.parse(url)
+
     if not feed.entries:
         return {"error": "No articles found"}
 
@@ -42,6 +49,6 @@ def fetch_arxiv_fulltext(keywords, max_results):
         "title": title,
         "authors": authors,
         "abstract": abstract,
-        "text": full_text[:6000],
+        "text": full_text[:6000],  # ограничим текст
         "source": pdf_url
     }
