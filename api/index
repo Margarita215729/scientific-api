@@ -6,6 +6,7 @@ from utils.nasa_ads import fetch_nasa_abstracts
 from utils.openml_data import fetch_openml_data
 from utils.graph_visualizer import generate_graph_image
 from drive.drive_client import upload_to_drive
+from fastapi import Query
 
 app = FastAPI()
 
@@ -35,3 +36,12 @@ def upload_file(payload: dict = Body(...)):
     mime_type = payload.get("mime_type")
     content = payload.get("content")
     return upload_to_drive(filename, mime_type, content)
+
+@app.get("/api/drive/list")
+def list_drive_files(limit: int = 5):
+    return JSONResponse(content=list_files(limit))
+
+@app.get("/api/drive/file")
+def get_drive_file(file_id: str = Query(...)):
+    return JSONResponse(content=download_file(file_id))
+
