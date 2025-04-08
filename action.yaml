@@ -3,14 +3,11 @@ info:
   title: Scientific Assistant API
   version: 2.1.0
   description: >
-    API для кастомного GPT, обеспечивающий доступ к научным статьям, данным,
-    визуализации графов и интеграции с Google Drive.
-
+    API для кастомного GPT, обеспечивающий доступ к научным статьям, данным, визуализации графов и интеграции с Google
+    Drive.
 servers:
-  - url: https://scientific-api.vercel.app 
-
+  - url: https://scientific-api.vercel.app
 paths:
-
   /drive/upload:
     post:
       operationId: uploadToDrive
@@ -29,7 +26,7 @@ paths:
                 content:
                   type: string
       responses:
-        '200':
+        "200":
           description: Результат загрузки
           content:
             application/json:
@@ -42,7 +39,6 @@ paths:
                     type: string
                   mimeType:
                     type: string
-
   /drive/list:
     get:
       operationId: listDriveFiles
@@ -55,7 +51,7 @@ paths:
             type: integer
             default: 5
       responses:
-        '200':
+        "200":
           description: Список файлов
           content:
             application/json:
@@ -75,7 +71,6 @@ paths:
                           type: string
                         modifiedTime:
                           type: string
-
   /drive/file:
     get:
       operationId: downloadDriveFile
@@ -87,7 +82,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Содержимое файла
           content:
             application/json:
@@ -96,7 +91,6 @@ paths:
                 properties:
                   content:
                     type: string
-
   /graph/visualize:
     post:
       operationId: visualizeGraph
@@ -119,7 +113,7 @@ paths:
                     items:
                       type: string
       responses:
-        '200':
+        "200":
           description: Картинка и Python-код графа
           content:
             application/json:
@@ -130,7 +124,6 @@ paths:
                     type: string
                   python_code:
                     type: string
-
   /arxiv/fulltext:
     get:
       operationId: getArxivFullText
@@ -147,7 +140,7 @@ paths:
             type: integer
             default: 1
       responses:
-        '200':
+        "200":
           description: Статья с arXiv
           content:
             application/json:
@@ -166,7 +159,6 @@ paths:
                     type: string
                   source:
                     type: string
-
   /semantic/fulltext:
     get:
       operationId: getSemanticFullText
@@ -183,7 +175,7 @@ paths:
             type: integer
             default: 1
       responses:
-        '200':
+        "200":
           description: Результаты поиска
           content:
             application/json:
@@ -203,7 +195,6 @@ paths:
                           type: string
                         content:
                           type: string
-
   /nasa/abstracts:
     get:
       operationId: getNasaAbstracts
@@ -215,7 +206,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Результаты NASA
           content:
             application/json:
@@ -235,7 +226,6 @@ paths:
                           type: array
                           items:
                             type: string
-
   /openml/data:
     get:
       operationId: getOpenMLData
@@ -251,10 +241,12 @@ paths:
           required: false
           schema:
             type: string
-            enum: [csv, json]
+            enum:
+              - csv
+              - json
             default: csv
       responses:
-        '200':
+        "200":
           description: Данные из OpenML
           content:
             application/json:
