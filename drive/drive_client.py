@@ -1,7 +1,7 @@
 import requests
 import os
 import json
-from drive.refresh_token_flow import refresh_access_token
+from .refresh_token_flow import refresh_access_token
 
 # Google Drive API base
 GOOGLE_API_BASE = "https://www.googleapis.com/drive/v3"
