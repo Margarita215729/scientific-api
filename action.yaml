@@ -1,1 +1,241 @@
+openapi: 3.1.0
+info:
+  title: Scientific Assistant API
+  version: 2.2.0
+  description: >
+    API-интерфейс для кастомного GPT, обеспечивающий доступ к Google Drive, научным источникам (arXiv, Semantic Scholar,
+    OpenML), а также визуализации графов.
+servers:
+  - url: https://scientific-api.vercel.app/api
+paths:
+  /drive/upload:
+    post:
+      operationId: uploadToGoogleDrive
+      summary: Загрузить файл в Google Drive
+      description: Загружает файл по имени, MIME-типу и содержимому.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                mime_type:
+                  type: string
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Результат загрузки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  mimeType:
+                    type: string
+  /drive/list:
+    get:
+      operationId: listGoogleDriveFiles
+      summary: Получить список файлов из Google Drive
+      description: Возвращает список последних файлов в твоём Google Drive.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        mimeType:
+                          type: string
+                        modifiedTime:
+                          type: string
+  /drive/file:
+    get:
+      operationId: downloadFileFromGoogleDrive
+      summary: Скачать файл из Google Drive
+      description: Загружает содержимое файла по его ID.
+      parameters:
+        - name: file_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Содержимое файла
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+  /arxiv/fulltext:
+    get:
+      operationId: fetchArxivArticle
+      summary: Получить статью с arXiv
+      description: Загружает и парсит PDF-статью по ключевым словам.
+      parameters:
+        - name: keywords
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Статья с arXiv
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  authors:
+                    type: array
+                    items:
+                      type: string
+                  abstract:
+                    type: string
+                  text:
+                    type: string
+                  source:
+                    type: string
+  /semantic/fulltext:
+    get:
+      operationId: fetchSemanticScholarArticle
+      summary: Получить статью из Semantic Scholar
+      description: Находит и возвращает статью с разделами и аннотацией.
+      parameters:
+        - name: keywords
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Статья из Semantic Scholar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  abstract:
+                    type: string
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        heading:
+                          type: string
+                        content:
+                          type: string
+  /openml/data:
+    get:
+      operationId: getOpenMLDataset
+      summary: Получить данные из OpenML
+      description: Возвращает список датасетов по тегу или CSV по dataset ID.
+      parameters:
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: did
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - csv
+              - json
+            default: json
+      responses:
+        "200":
+          description: Данные OpenML
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+  /graph/visualize:
+    post:
+      operationId: visualizeGraphData
+      summary: Построить граф
+      description: Принимает список узлов и рёбер, возвращает изображение и Python-код.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    type: string
+                edges:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        "200":
+          description: Визуализация графа
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image_base64:
+                    type: string
+                  python_code:
+                    type: string
 
