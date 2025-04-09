@@ -6,7 +6,7 @@ info:
     API-интерфейс для кастомного GPT, обеспечивающий доступ к Google Drive, научным источникам (arXiv, Semantic Scholar,
     OpenML), а также визуализации графов.
 servers:
-  - url: https://scientific-api.vercel.app/api
+  - url: https://scientific-api.vercel.app
 paths:
   /drive/upload:
     post:
