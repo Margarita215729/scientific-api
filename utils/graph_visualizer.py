@@ -2,6 +2,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import base64
 import io
+import os
+os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
 
 def generate_graph_image(data):
     """
