@@ -49,6 +49,28 @@ def list_files(limit=5):
     """
     Получить список файлов из Google Drive
     """
+    try:
+        headers = get_headers()
+        params = {
+            "pageSize": limit,
+            "fields": "files(id, name, mimeType, modifiedTime)"
+        }
+
+        url = "https://www.googleapis.com/drive/v3/files"
+        response = requests.get(url, headers=headers, params=params)
+
+        return {
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "result": response.json()
+        }
+
+    except Exception as e:
+        return {
+            "error": "List files failed",
+            "exception": str(e)
+        }
+        
     headers = get_headers()
     params = {
         "pageSize": limit,
