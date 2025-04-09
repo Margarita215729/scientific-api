@@ -8,6 +8,11 @@ from utils.graph_visualizer import generate_graph_image
 
 app = FastAPI()
 
+@app.get("/api")
+def root():
+    return {"message": "Scientific Assistant API is live"}
+
+
 @app.post("/api/drive/upload")
 def upload_file(payload: dict = Body(...)):
     return upload_to_drive(
