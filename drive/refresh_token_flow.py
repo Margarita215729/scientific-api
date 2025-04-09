@@ -1,10 +1,6 @@
 import os
 import requests
 
-# OAuth 2.0 Playground client info (официальные, безопасны для теста)
-GOOGLE_CLIENT_ID = "407408718192.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "C1GZxREKC1OaUO-WnUuiYYkb"
-
 def refresh_access_token():
     """
     Обновляет access_token через refresh_token, используя Playground OAuth client
