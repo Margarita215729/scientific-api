@@ -3,11 +3,14 @@ info:
   title: Scientific Assistant API
   version: 2.1.0
   description: >
-    API для кастомного GPT, обеспечивающий доступ к научным статьям, данным, визуализации графов и интеграции с Google
-    Drive.
+    API для кастомного GPT. Позволяет читать и анализировать научные статьи (arXiv, Semantic Scholar),
+    загружать и визуализировать графы, работать с Google Drive и OpenML.
+
 servers:
   - url: https://scientific-api.vercel.app
+
 paths:
+
   /drive/upload:
     post:
       operationId: uploadToDrive
@@ -26,7 +29,7 @@ paths:
                 content:
                   type: string
       responses:
-        "200":
+        '200':
           description: Результат загрузки
           content:
             application/json:
@@ -39,6 +42,7 @@ paths:
                     type: string
                   mimeType:
                     type: string
+
   /drive/list:
     get:
       operationId: listDriveFiles
@@ -46,12 +50,11 @@ paths:
       parameters:
         - name: limit
           in: query
-          required: false
           schema:
             type: integer
             default: 5
       responses:
-        "200":
+        '200':
           description: Список файлов
           content:
             application/json:
@@ -71,10 +74,11 @@ paths:
                           type: string
                         modifiedTime:
                           type: string
+
   /drive/file:
     get:
       operationId: downloadDriveFile
-      summary: Скачать файл из Google Drive по ID
+      summary: Скачать файл по ID из Google Drive
       parameters:
         - name: file_id
           in: query
@@ -82,7 +86,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Содержимое файла
           content:
             application/json:
@@ -91,43 +95,11 @@ paths:
                 properties:
                   content:
                     type: string
-  /graph/visualize:
-    post:
-      operationId: visualizeGraph
-      summary: Сгенерировать граф по узлам и связям
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                nodes:
-                  type: array
-                  items:
-                    type: string
-                edges:
-                  type: array
-                  items:
-                    type: array
-                    items:
-                      type: string
-      responses:
-        "200":
-          description: Картинка и Python-код графа
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  image_base64:
-                    type: string
-                  python_code:
-                    type: string
+
   /arxiv/fulltext:
     get:
       operationId: getArxivFullText
-      summary: Получить текст статьи с arXiv
+      summary: Получить статью с arXiv (включая PDF)
       parameters:
         - name: keywords
           in: query
@@ -140,7 +112,7 @@ paths:
             type: integer
             default: 1
       responses:
-        "200":
+        '200':
           description: Статья с arXiv
           content:
             application/json:
@@ -159,6 +131,7 @@ paths:
                     type: string
                   source:
                     type: string
+
   /semantic/fulltext:
     get:
       operationId: getSemanticFullText
@@ -175,8 +148,8 @@ paths:
             type: integer
             default: 1
       responses:
-        "200":
-          description: Результаты поиска
+        '200':
+          description: Статья из Semantic Scholar
           content:
             application/json:
               schema:
@@ -195,45 +168,20 @@ paths:
                           type: string
                         content:
                           type: string
-  /nasa/abstracts:
-    get:
-      operationId: getNasaAbstracts
-      summary: Получить аннотации из NASA ADS
-      parameters:
-        - name: query
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Результаты NASA
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        title:
-                          type: string
-                        abstract:
-                          type: string
-                        authors:
-                          type: array
-                          items:
-                            type: string
+
   /openml/data:
     get:
       operationId: getOpenMLData
-      summary: Получить датасет с OpenML
+      summary: Получить список датасетов или скачать CSV по did
       parameters:
         - name: tag
           in: query
-          required: true
+          required: false
+          schema:
+            type: string
+        - name: did
+          in: query
+          required: false
           schema:
             type: string
         - name: format
@@ -241,13 +189,11 @@ paths:
           required: false
           schema:
             type: string
-            enum:
-              - csv
-              - json
-            default: csv
+            enum: [csv, json]
+            default: json
       responses:
-        "200":
-          description: Данные из OpenML
+        '200':
+          description: Результаты OpenML
           content:
             application/json:
               schema:
@@ -257,3 +203,37 @@ paths:
                     type: array
                     items:
                       type: object
+
+  /graph/visualize:
+    post:
+      operationId: visualizeGraph
+      summary: Построить граф из узлов и связей
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    type: string
+                edges:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        '200':
+          description: Изображение графа
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image_base64:
+                    type: string
+                  python_code:
+                    type: string
