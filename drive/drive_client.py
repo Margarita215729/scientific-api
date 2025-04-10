@@ -54,6 +54,31 @@ def get_universe_tree():
         "children": build_drive_tree(universe_id)
     }
 
+def build_drive_tree(folder_id):
+    headers = get_headers()
+    url = "https://www.googleapis.com/drive/v3/files"
+    query = f"'{folder_id}' in parents"
+    params = {
+        "q": query,
+        "fields": "files(id, name, mimeType)",
+        "pageSize": 1000
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    items = response.json().get("files", [])
+    tree = []
+
+    for item in items:
+        node = {
+            "id": item["id"],
+            "name": item["name"],
+            "type": "folder" if item["mimeType"] == "application/vnd.google-apps.folder" else "file"
+        }
+        if node["type"] == "folder":
+            node["children"] = build_drive_tree(item["id"])
+        tree.append(node)
+
+    return tree
 
 def upload_to_universe(filename, mime_type, content):
     headers = get_headers()
