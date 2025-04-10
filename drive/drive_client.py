@@ -1,7 +1,10 @@
 import os
 import requests
 from .refresh_token_flow import refresh_access_token
+
 UNIVERSE_FOLDER_NAME = "Universe"
+def get_universe_folder_id():
+    return "1-07YePaYLOiGqyIq0MszRLnCjd8aRkSt"
 
 def get_headers():
     token = os.getenv("GOOGLE_DRIVE_TOKEN")
