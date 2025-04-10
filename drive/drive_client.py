@@ -16,10 +16,12 @@ def list_files_in_universe(limit=20):
     folder_id = get_universe_folder_id()
     return list_files_in_folder(folder_id=folder_id, limit=limit)
 
-def build_drive_tree(folder_id):
+def build_drive_tree(folder_id, depth=0, max_depth=10):
+    if depth > max_depth:
+        return [{"name": "MAX_DEPTH_REACHED", "type": "notice"}]
+
     headers = get_headers()
     url = "https://www.googleapis.com/drive/v3/files"
-
     query = f"'{folder_id}' in parents"
     params = {
         "q": query,
@@ -27,8 +29,11 @@ def build_drive_tree(folder_id):
         "pageSize": 1000
     }
 
-    response = requests.get(url, headers=headers, params=params)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+    except Exception as e:
+        return [{"name": f"ERROR: {str(e)}", "type": "error"}]
 
     items = response.json().get("files", [])
     tree = []
@@ -40,10 +45,11 @@ def build_drive_tree(folder_id):
             "type": "folder" if item["mimeType"] == "application/vnd.google-apps.folder" else "file"
         }
         if node["type"] == "folder":
-            node["children"] = build_drive_tree(item["id"])  # рекурсивно
+            node["children"] = build_drive_tree(item["id"], depth=depth+1, max_depth=max_depth)
         tree.append(node)
 
     return tree
+
 
 def get_universe_tree():
     universe_id = get_universe_folder_id()
