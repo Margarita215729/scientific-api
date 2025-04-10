@@ -65,3 +65,44 @@ def load_universe_tree_snapshot():
             return json.load(f)
     except Exception as e:
         return {"error": f"Snapshot not found or invalid: {str(e)}"}
+
+def get_file_content(file_id):
+    try:
+        headers = get_headers()
+        url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return {"content": response.text}
+    except Exception as e:
+        return {"error": str(e)}
+
+def upload_to_drive(filename, mime_type, content, parent_id=None):
+    try:
+        headers = get_headers()
+        metadata = {"name": filename}
+        if parent_id:
+            metadata["parents"] = [parent_id]
+
+        files = {
+            "metadata": ('metadata', json.dumps(metadata), 'application/json'),
+            "file": (filename, content, mime_type)
+        }
+
+        url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+        response = requests.post(url, headers=headers, files=files)
+        return response.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+def update_file(file_id, new_content, mime_type="text/plain"):
+    try:
+        headers = get_headers()
+        url = f"https://www.googleapis.com/upload/drive/v3/files/{file_id}?uploadType=media"
+        response = requests.patch(url, data=new_content.encode(), headers={
+            "Authorization": headers["Authorization"],
+            "Content-Type": mime_type
+        })
+        response.raise_for_status()
+        return {"status": "updated", "file_id": file_id}
+    except Exception as e:
+        return {"error": f"Failed to update file: {str(e)}"}
