@@ -9,6 +9,10 @@ from utils.graph_visualizer import generate_graph_image
 app = FastAPI()
 
 
+@app.get("/api/drive/universe/tree/static")
+def universe_drive_tree_static():
+    return load_universe_tree_snapshot()
+
 @app.get("/api/drive/universe/tree")
 def universe_drive_tree(max_depth: int = 3):
     return get_universe_tree(max_depth=max_depth)
