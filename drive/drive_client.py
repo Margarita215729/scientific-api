@@ -5,6 +5,14 @@ from .refresh_token_flow import refresh_access_token
 
 UNIVERSE_FOLDER_ID = "1-07YePaYLOiGqyIq0MszRLnCjd8aRkSt"
 
+def generate_universe_snapshot():
+    from drive.drive_client import get_universe_tree  # импорт внутри, чтобы избежать циклов
+    tree = get_universe_tree(max_depth=10)
+    os.makedirs("data", exist_ok=True)
+    with open("data/universe_tree_snapshot.json", "w") as f:
+        json.dump(tree, f, indent=2)
+    print("📁 [snapshot] Обновлён Universe snapshot")
+
 def load_universe_tree_snapshot():
     try:
         with open("data/universe_tree_snapshot.json", "r") as f:
