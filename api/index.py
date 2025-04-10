@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, Body
 from fastapi.responses import JSONResponse
-from drive.drive_client import upload_to_drive, list_files, download_file
+from drive.drive_client import *
 from utils.arxiv_parser import fetch_arxiv_fulltext
 from utils.semantic_parser import fetch_semantic_fulltext
 from utils.openml_data import fetch_openml_data
@@ -8,13 +8,22 @@ from utils.graph_visualizer import generate_graph_image
 
 app = FastAPI()
 
-from drive.drive_client import (
-    list_files,
-    list_folders,
-    upload_to_drive,
-    get_file_content,
-    auth_status
-)
+
+@app.get("/api/drive/universe/tree")
+def universe_drive_tree():
+    return get_universe_tree()
+
+@app.get("/api/drive/universe/files")
+def get_files_from_universe(limit: int = 10):
+    return list_files_in_universe(limit=limit)
+
+@app.post("/api/drive/universe/upload")
+def upload_to_universe_endpoint(payload: dict = Body(...)):
+    return upload_to_universe(
+        filename=payload["filename"],
+        mime_type=payload.get("mime_type", "text/plain"),
+        content=payload["content"]
+    )
 
 @app.get("/api/drive/folders")
 def get_drive_folders(limit: int = 20, search: str = None):
