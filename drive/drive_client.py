@@ -8,6 +8,25 @@ def get_headers():
         token = refresh_access_token()
     return {"Authorization": f"Bearer {token}"}
 
+def list_folders(limit=20, q=None):
+    try:
+        headers = get_headers()
+        query = "mimeType='application/vnd.google-apps.folder'"
+        if q:
+            query += f" and name contains '{q}'"
+
+        params = {
+            "q": query,
+            "pageSize": limit,
+            "fields": "files(id, name, mimeType, modifiedTime)"
+        }
+
+        url = "https://www.googleapis.com/drive/v3/files"
+        response = requests.get(url, headers=headers, params=params)
+        return response.json()
+    except Exception as e:
+        return {"error": str(e)}
+
 def list_files(limit=10, q=None):
     try:
         headers = get_headers()
