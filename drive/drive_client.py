@@ -27,6 +27,44 @@ def list_files_in_universe(limit=20):
     folder_id = get_universe_folder_id()
     return list_files_in_folder(folder_id=folder_id, limit=limit)
 
+def build_drive_tree(folder_id):
+    headers = get_headers()
+    url = "https://www.googleapis.com/drive/v3/files"
+
+    query = f"'{folder_id}' in parents"
+    params = {
+        "q": query,
+        "fields": "files(id, name, mimeType)",
+        "pageSize": 1000
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+
+    items = response.json().get("files", [])
+    tree = []
+
+    for item in items:
+        node = {
+            "id": item["id"],
+            "name": item["name"],
+            "type": "folder" if item["mimeType"] == "application/vnd.google-apps.folder" else "file"
+        }
+        if node["type"] == "folder":
+            node["children"] = build_drive_tree(item["id"])  # рекурсивно
+        tree.append(node)
+
+    return tree
+
+def get_universe_tree():
+    universe_id = get_universe_folder_id()
+    return {
+        "name": "Universe",
+        "id": universe_id,
+        "type": "folder",
+        "children": build_drive_tree(universe_id)
+    }
+
 
 def upload_to_universe(filename, mime_type, content):
     headers = get_headers()
