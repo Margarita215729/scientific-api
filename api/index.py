@@ -9,6 +9,20 @@ from utils.graph_visualizer import generate_graph_image
 app = FastAPI()
 
 
+# 👇 Автообновление snapshot каждые 40 сек
+def schedule_snapshot_update(interval=40):
+    def update_loop():
+        generate_universe_snapshot()
+        threading.Timer(interval, update_loop).start()
+
+    update_loop()
+
+# ⏱ Запускаем таймер при старте FastAPI
+@app.on_event("startup")
+def startup_event():
+    print("🟢 FastAPI запущен. Включаем обновление snapshot...")
+    schedule_snapshot_update()
+
 @app.get("/api/drive/universe/tree/static")
 def universe_drive_tree_static():
     return load_universe_tree_snapshot()
