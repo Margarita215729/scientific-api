@@ -5,10 +5,12 @@ info:
   description: >
     API-интерфейс для кастомного GPT, обеспечивающий доступ к Google Drive, научным источникам (arXiv, Semantic Scholar,
     OpenML), а также визуализации графов.
+
 servers:
   - url: https://scientific-api.vercel.app
-paths:  
-/drive/list:
+
+paths:
+  /drive/list:
     get:
       operationId: listDriveFiles
       summary: Получить список файлов на Google Drive
@@ -190,11 +192,11 @@ paths:
             application/json:
               schema:
                 type: object
+
   /arxiv/fulltext:
     get:
       operationId: fetchArxivArticle
       summary: Получить статью с arXiv
-      description: Загружает и парсит PDF-статью по ключевым словам.
       parameters:
         - name: keywords
           in: query
@@ -207,7 +209,7 @@ paths:
             type: integer
             default: 1
       responses:
-        "200":
+        '200':
           description: Статья с arXiv
           content:
             application/json:
@@ -226,11 +228,11 @@ paths:
                     type: string
                   source:
                     type: string
+
   /semantic/fulltext:
     get:
       operationId: fetchSemanticScholarArticle
       summary: Получить статью из Semantic Scholar
-      description: Находит и возвращает статью с разделами и аннотацией.
       parameters:
         - name: keywords
           in: query
@@ -243,7 +245,7 @@ paths:
             type: integer
             default: 1
       responses:
-        "200":
+        '200':
           description: Статья из Semantic Scholar
           content:
             application/json:
@@ -263,11 +265,11 @@ paths:
                           type: string
                         content:
                           type: string
+
   /openml/data:
     get:
       operationId: getOpenMLDataset
       summary: Получить данные из OpenML
-      description: Возвращает список датасетов по тегу или CSV по dataset ID.
       parameters:
         - name: tag
           in: query
@@ -284,12 +286,10 @@ paths:
           required: false
           schema:
             type: string
-            enum:
-              - csv
-              - json
+            enum: [csv, json]
             default: json
       responses:
-        "200":
+        '200':
           description: Данные OpenML
           content:
             application/json:
@@ -300,11 +300,11 @@ paths:
                     type: array
                     items:
                       type: object
+
   /graph/visualize:
     post:
       operationId: visualizeGraphData
-      summary: Построить граф
-      description: Принимает список узлов и рёбер, возвращает изображение и Python-код.
+      summary: Построить граф из списка узлов и рёбер
       requestBody:
         required: true
         content:
@@ -323,7 +323,7 @@ paths:
                     items:
                       type: string
       responses:
-        "200":
+        '200':
           description: Визуализация графа
           content:
             application/json:
@@ -334,4 +334,3 @@ paths:
                     type: string
                   python_code:
                     type: string
-
