@@ -5,6 +5,12 @@ from .refresh_token_flow import refresh_access_token
 
 UNIVERSE_FOLDER_ID = "1-07YePaYLOiGqyIq0MszRLnCjd8aRkSt"
 
+def load_universe_tree_snapshot():
+    try:
+        with open("data/universe_tree_snapshot.json", "r") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"error": f"Snapshot not found or invalid: {str(e)}"}
 
 def get_universe_folder_id():
     return UNIVERSE_FOLDER_ID
