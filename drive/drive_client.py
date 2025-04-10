@@ -57,13 +57,13 @@ def build_drive_tree(folder_id, depth=0, max_depth=10):
     return tree
 
 
-def get_universe_tree():
+def get_universe_tree(max_depth=3):
     universe_id = get_universe_folder_id()
     return {
         "name": "Universe",
         "id": universe_id,
         "type": "folder",
-        "children": build_drive_tree(universe_id)
+        "children": build_drive_tree(universe_id, max_depth=max_depth)
     }
 
 
