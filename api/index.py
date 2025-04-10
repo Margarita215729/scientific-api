@@ -5,6 +5,7 @@ from utils.arxiv_parser import fetch_arxiv_fulltext
 from utils.semantic_parser import fetch_semantic_fulltext
 from utils.openml_data import fetch_openml_data
 from utils.graph_visualizer import generate_graph_image
+import threading
 
 app = FastAPI()
 
