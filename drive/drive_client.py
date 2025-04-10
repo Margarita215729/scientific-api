@@ -1,99 +1,62 @@
-import requests
 import os
-import json
+import requests
 from .refresh_token_flow import refresh_access_token
-
-# Google Drive API base
-GOOGLE_API_BASE = "https://www.googleapis.com/drive/v3"
-GOOGLE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3"
 
 def get_headers():
     token = os.getenv("GOOGLE_DRIVE_TOKEN")
-
     if not token:
         token = refresh_access_token()
+    return {"Authorization": f"Bearer {token}"}
 
-    return {
-        "Authorization": f"Bearer {token}"
-    }
-
-def upload_to_drive(filename, mime_type, content):
-    """
-    Загрузка файла в Google Drive через multipart upload
-    """
-    headers = get_headers()
-
-    metadata = {
-        "name": filename,
-        "mimeType": mime_type
-    }
-
-    files = {
-        'metadata': ('metadata.json', json.dumps(metadata), 'application/json'),
-        'file': (filename, content, mime_type)
-    }
-
-    url = f"{GOOGLE_UPLOAD_BASE}/files?uploadType=multipart"
-    response = requests.post(url, headers=headers, files=files)
-
-    try:
-        return response.json()
-    except Exception:
-        return {
-            "error": "Upload failed",
-            "status_code": response.status_code,
-            "raw": response.text
-        }
-
-def list_files(limit=5):
-    """
-    Получить список файлов из Google Drive
-    """
+def list_files(limit=10, q=None):
     try:
         headers = get_headers()
         params = {
             "pageSize": limit,
             "fields": "files(id, name, mimeType, modifiedTime)"
         }
-
+        if q:
+            params["q"] = f"name contains '{q}'"
         url = "https://www.googleapis.com/drive/v3/files"
         response = requests.get(url, headers=headers, params=params)
-
-        return {
-            "status_code": response.status_code,
-            "headers": dict(response.headers),
-            "result": response.json()
-        }
-
+        return response.json()
     except Exception as e:
-        return {
-            "error": "List files failed",
-            "exception": str(e)
-        }
-        
-    headers = get_headers()
-    params = {
-        "pageSize": limit,
-        "fields": "files(id, name, mimeType, modifiedTime)"
-    }
+        return {"error": str(e)}
 
-    url = f"{GOOGLE_API_BASE}/files"
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
-
-def download_file(file_id):
-    """
-    Скачать содержимое файла по ID
-    """
-    headers = get_headers()
-    download_url = f"{GOOGLE_API_BASE}/files/{file_id}?alt=media"
-    response = requests.get(download_url, headers=headers)
-
-    if response.status_code == 200:
+def get_file_content(file_id):
+    try:
+        headers = get_headers()
+        url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+        response = requests.get(url, headers=headers)
         return {"content": response.text}
-    else:
-        return {
-            "error": "Failed to fetch file",
-            "status_code": response.status_code,
-            "details": response.text
+    except Exception as e:
+        return {"error": str(e)}
+
+def upload_to_drive(filename, mime_type, content):
+    try:
+        headers = get_headers()
+        metadata = {
+            "name": filename
         }
+        files = {
+            "metadata": ('metadata', str(metadata), 'application/json'),
+            "file": (filename, content, mime_type)
+        }
+        url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+        response = requests.post(url, headers=headers, files=files)
+        return response.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+def auth_status():
+    try:
+        headers = get_headers()
+        url = "https://www.googleapis.com/drive/v3/about?fields=user"
+        response = requests.get(url, headers=headers)
+        return {
+            "connected": response.status_code == 200,
+            "user": response.json().get("user", {}),
+            "status_code": response.status_code
+        }
+    except Exception as e:
+        return {"connected": False, "error": str(e)}
