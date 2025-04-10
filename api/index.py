@@ -10,8 +10,8 @@ app = FastAPI()
 
 
 @app.get("/api/drive/universe/tree")
-def universe_drive_tree():
-    return get_universe_tree()
+def universe_drive_tree(max_depth: int = 3):
+    return get_universe_tree(max_depth=max_depth)
 
 @app.get("/api/drive/universe/files")
 def get_files_from_universe(limit: int = 10):
