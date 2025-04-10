@@ -7,12 +7,77 @@ info:
     OpenML), а также визуализации графов.
 servers:
   - url: https://scientific-api.vercel.app
-paths:
+paths:  
+/drive/list:
+    get:
+      operationId: listDriveFiles
+      summary: Получить список файлов на Google Drive
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /drive/folders:
+    get:
+      operationId: listDriveFolders
+      summary: Получить список папок на Google Drive
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список папок
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /drive/file:
+    get:
+      operationId: downloadDriveFile
+      summary: Скачать содержимое файла по ID
+      parameters:
+        - name: file_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Содержимое файла
+          content:
+            application/json:
+              schema:
+                type: object
+
   /drive/upload:
     post:
-      operationId: uploadToGoogleDrive
-      summary: Загрузить файл в Google Drive
-      description: Загружает файл по имени, MIME-типу и содержимому.
+      operationId: uploadToDrive
+      summary: Загрузить файл на Google Drive
       requestBody:
         required: true
         content:
@@ -27,73 +92,104 @@ paths:
                 content:
                   type: string
       responses:
-        "200":
-          description: Результат загрузки
+        '200':
+          description: Информация о загруженном файле
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  id:
-                    type: string
-                  name:
-                    type: string
-                  mimeType:
-                    type: string
-  /drive/list:
+
+  /drive/folder-files:
     get:
-      operationId: listGoogleDriveFiles
-      summary: Получить список файлов из Google Drive
-      description: Возвращает список последних файлов в твоём Google Drive.
+      operationId: listFilesInFolder
+      summary: Список файлов внутри конкретной папки
+      parameters:
+        - name: folder_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Список файлов в папке
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /drive/universe/files:
+    get:
+      operationId: listUniverseFiles
+      summary: Список файлов из папки Universe
       parameters:
         - name: limit
           in: query
           required: false
           schema:
             type: integer
-            default: 5
+            default: 10
       responses:
-        "200":
-          description: Список файлов
+        '200':
+          description: Файлы из папки Universe
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  files:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        name:
-                          type: string
-                        mimeType:
-                          type: string
-                        modifiedTime:
-                          type: string
-  /drive/file:
+
+  /drive/universe/upload:
+    post:
+      operationId: uploadToUniverse
+      summary: Загрузить файл в папку Universe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                mime_type:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Информация о загруженном файле
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /drive/universe/tree:
     get:
-      operationId: downloadFileFromGoogleDrive
-      summary: Скачать файл из Google Drive
-      description: Загружает содержимое файла по его ID.
-      parameters:
-        - name: file_id
-          in: query
-          required: true
-          schema:
-            type: string
+      operationId: getUniverseDriveTree
+      summary: Построить дерево файлов и папок внутри Universe
       responses:
-        "200":
-          description: Содержимое файла
+        '200':
+          description: Иерархия файлов
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  content:
-                    type: string
+
+  /drive/status:
+    get:
+      operationId: driveAuthStatus
+      summary: Проверка подключения к Google Drive
+      responses:
+        '200':
+          description: Статус подключения
+          content:
+            application/json:
+              schema:
+                type: object
   /arxiv/fulltext:
     get:
       operationId: fetchArxivArticle
