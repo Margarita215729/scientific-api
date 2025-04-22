@@ -1,7 +1,7 @@
 # tests/test_api.py
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from api.index import app  # Исправлен импорт
 
 client = TestClient(app)
 
@@ -64,6 +64,3 @@ def test_file_manager_list():
     json_data = response.json()
     assert isinstance(json_data, dict), f"Ожидался словарь, получено: {type(json_data)}"
     print(f"/files/list: получена структура файлов: {json_data}")
-
-# Дополнительно можно добавить тесты для чтения, разбиения, создания и редактирования файлов через /files endpoints,
-# а также другие тесты для дополнительных функций API.
