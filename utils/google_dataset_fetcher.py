@@ -2,13 +2,12 @@
 utils/google_dataset_fetcher.py
 
 Утилита для поиска датасетов через Google Dataset Search с использованием SerpAPI.
-Необходимо задать переменную окружения SERPAPI_KEY.
 Документация SerpAPI: https://serpapi.com/
 """
 
-import os
 import requests
 import json
+from config import SERPAPI_KEY
 
 def fetch_from_google_dataset_search(query: str, max_results: int = 10) -> dict:
     """
@@ -18,15 +17,14 @@ def fetch_from_google_dataset_search(query: str, max_results: int = 10) -> dict:
     :param max_results: Максимальное число результатов.
     :return: Словарь с ключами "source" и "results".
     """
-    serpapi_key = os.environ.get("SERPAPI_KEY")
-    if not serpapi_key:
-        raise Exception("Не задана переменная окружения SERPAPI_KEY для доступа к SerpAPI")
+    if not SERPAPI_KEY:
+        raise Exception("Не задана переменная SERPAPI_KEY для доступа к SerpAPI")
     
     base_url = "https://serpapi.com/search.json"
     params = {
         "engine": "google_dataset",
         "q": query,
-        "api_key": serpapi_key,
+        "api_key": SERPAPI_KEY,
         "num": max_results
     }
     response = requests.get(base_url, params=params)
