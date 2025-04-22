@@ -5,18 +5,17 @@ utils/adsabs_fetcher.py
 
 Для работы с ADSabs используется:
     - URL: https://api.adsabs.harvard.edu/v1/search/query
-    - Заголовок авторизации с Bearer токеном (предоставленный ниже).
+    - Заголовок авторизации с Bearer токеном из переменной окружения.
 
 Документация ADSabs API:
 https://api.adsabs.harvard.edu/
 """
 
+import os
 import requests
 import json
 
-# Константы для доступа к ADSabs API. 
-# В реальном проекте рекомендуется хранить токен в переменной окружения.
-ADSABS_TOKEN = "zahkzrUHgH9h9LuUgIfYUYVkJ0f86fHLdOzDYjko"
+# Получаем токен из переменной окружения
 ADSABS_URL = "https://api.adsabs.harvard.edu/v1/search/query"
 
 def fetch_from_adsabs(query: str, max_results: int = 10) -> dict:
@@ -38,7 +37,11 @@ def fetch_from_adsabs(query: str, max_results: int = 10) -> dict:
           "doi": "10.xxxx/xxxxxx"
       }
     """
-    headers = {"Authorization": f"Bearer {ADSABS_TOKEN}"}
+    adsabs_token = os.environ.get("ADSABS_TOKEN")
+    if not adsabs_token:
+        raise Exception("Не указан токен ADSABS_TOKEN в переменных окружения")
+        
+    headers = {"Authorization": f"Bearer {adsabs_token}"}
     
     # Параметры запроса: q – поисковый запрос, rows – число результатов, fl – поля для извлечения
     params = {
