@@ -1,7 +1,7 @@
-# main.py
+# api/index.py
 import uvicorn
 from fastapi import FastAPI
-from api import data_analysis, ml_models, dataset_api, file_manager_api
+from api import data_analysis, ml_models, file_manager_api, dataset_api
 
 app = FastAPI(
     title="Scientific API",
@@ -21,7 +21,5 @@ async def root():
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
-from api import file_manager_api
-
-
-asgi_app = app  # For Vercel compatibility
+# Для совместимости с Vercel
+asgi_app = app
