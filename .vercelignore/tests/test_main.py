@@ -1,7 +1,7 @@
 # tests/test_main.py
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from api.index import app  # Исправлен импорт для соответствия структуре
 
 client = TestClient(app)
 
