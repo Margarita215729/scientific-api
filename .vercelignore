@@ -1,0 +1,25 @@
+# Local development files
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Large data files
+galaxy_data/
+*.fits
+*.dat
+*.ipynb
+
+# Version control
+.git/
+
+# Environment files (use Vercel environment variables instead)
+.env
+
+# Other unnecessary files
+.vercelignore.txt
+Анализ неудачного деплоя FastAPI-приложения на Vercel.pdf
+chapter*.md
+chapter*.docx
+MainDataSetsManager.ipynb
+План согласованный с методическими указаниями* 

@@ -2,10 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/vercel_app.py",
+      "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.9"
+        "runtime": "python3.9",
+        "maxLambdaSize": "15mb"
       }
     },
     {
@@ -23,11 +24,19 @@
       "dest": "/ui/favicon.ico"
     },
     {
+      "src": "/(api|docs|openapi.json|redoc).*",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/(.*\\.(js|css|html|ico))",
+      "dest": "/ui/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "api/vercel_app.py"
+      "dest": "/api/index.py"
     }
   ]
 }
