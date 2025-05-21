@@ -5,7 +5,7 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.12",
+        "runtime": "python3.9",
         "maxLambdaSize": "150mb"
       }
     },
@@ -15,6 +15,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/$",
+      "dest": "/ui/index.html"
+    },
     {
       "src": "/static/(.*)",
       "dest": "/ui/$1"
