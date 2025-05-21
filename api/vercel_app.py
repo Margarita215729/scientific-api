@@ -22,10 +22,10 @@ app.add_middleware(
 current_dir = pathlib.Path(__file__).parent.parent
 ui_dir = current_dir / "ui"
 
-# Mount static files
+# Mount static files - use the absolute path to ensure Vercel can find it
 app.mount("/static", StaticFiles(directory=str(ui_dir)), name="static")
 
-# Set up Jinja2 templates
+# Set up Jinja2 templates - use the absolute path to ensure Vercel can find it
 templates = Jinja2Templates(directory=str(ui_dir))
 
 # Import simple router that doesn't depend on pandas

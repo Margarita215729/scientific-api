@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "API for scientific data processing",
   "scripts": {
-    "start": "uvicorn api.index:app --host 0.0.0.0 --port $PORT",
-    "vercel-build": "pip install -r requirements.txt"
+    "start": "uvicorn api.vercel_app:app --host 0.0.0.0 --port $PORT",
+    "vercel-build": "pip install -r requirements-vercel.txt",
+    "dev": "uvicorn api.vercel_app:app --host 0.0.0.0 --port 8000 --reload"
   },
   "engines": {
     "node": ">=14.0.0"
