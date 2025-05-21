@@ -7,9 +7,21 @@
       "config": {
         "runtime": "python3.9"
       }
+    },
+    {
+      "src": "ui/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/ui/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/ui/favicon.ico"
+    },
     {
       "src": "/(.*)",
       "dest": "api/vercel_app.py"
