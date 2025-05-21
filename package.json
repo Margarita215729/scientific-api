@@ -1,0 +1,12 @@
+{
+  "name": "scientific-api",
+  "version": "1.0.0",
+  "description": "API for scientific data processing",
+  "scripts": {
+    "start": "uvicorn api.index:app --host 0.0.0.0 --port $PORT",
+    "vercel-build": "pip install -r requirements.txt"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 
