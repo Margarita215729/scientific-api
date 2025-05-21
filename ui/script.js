@@ -3,6 +3,7 @@ const API_BASE_URL = '';  // Empty string for relative paths
 let mainChart = null;
 let currentView = '3d';
 let galaxyData = [];
+let isSimpleMode = false;
 
 // Цвета для каталогов
 const CATALOG_COLORS = {
@@ -14,6 +15,9 @@ const CATALOG_COLORS = {
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
+    // Проверим доступность API
+    testApiEndpoints();
+
     // Загрузка начальных данных
     loadCatalogStatus();
     loadStatistics();
@@ -49,6 +53,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Проверка доступности API эндпоинтов
+async function testApiEndpoints() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/ping`);
+        if (response.ok) {
+            console.log('API is available');
+        } else {
+            console.warn('API ping responded with non-OK status');
+            isSimpleMode = true;
+            showApiStatusMessage();
+        }
+    } catch (error) {
+        console.error('API ping test failed:', error);
+        isSimpleMode = true;
+        showApiStatusMessage();
+    }
+}
+
+// Показать сообщение о статусе API
+function showApiStatusMessage() {
+    const messageElement = document.getElementById('api-status-message');
+    if (messageElement) {
+        messageElement.style.display = 'block';
+    }
+}
+
 // Загрузка статуса каталогов
 async function loadCatalogStatus() {
     try {
@@ -72,6 +102,11 @@ async function loadCatalogStatus() {
                     ${catalog.available ? `<small class="text-muted ms-2">(${catalog.rows} объектов)</small>` : ''}
                 </div>`;
             });
+            
+            if (data.message) {
+                html += `<div class="alert alert-info mt-3">${data.message}</div>`;
+            }
+            
             statusContainer.innerHTML = html;
         } else {
             statusContainer.innerHTML = `<div class="alert alert-warning">Каталоги не загружены</div>`;

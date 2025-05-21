@@ -9,6 +9,13 @@
       }
     },
     {
+      "src": "api/backup_app.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.9"
+      }
+    },
+    {
       "src": "ui/**",
       "use": "@vercel/static"
     }
@@ -23,8 +30,16 @@
       "dest": "/ui/favicon.ico"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "api/vercel_app.py"
+      "dest": "api/vercel_app.py",
+      "continue": true
+    },
+    {
+      "src": "/(.*)",
+      "dest": "api/backup_app.py"
     }
   ]
 }
