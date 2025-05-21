@@ -1,7 +1,7 @@
 # api/index.py
 import uvicorn
 from fastapi import FastAPI
-from api import data_analysis, ml_models, file_manager_api, dataset_api
+from api import data_analysis, ml_models, file_manager_api, dataset_api, astro_catalog_api, ads_api
 
 app = FastAPI(
     title="Scientific API",
@@ -13,6 +13,8 @@ app.include_router(data_analysis.router, prefix="/data", tags=["Data Analysis"])
 app.include_router(ml_models.router, prefix="/ml", tags=["ML Models"])
 app.include_router(file_manager_api.router, prefix="/files", tags=["File Manager"])
 app.include_router(dataset_api.router, prefix="/datasets", tags=["Datasets"])
+app.include_router(astro_catalog_api.router, prefix="/astro", tags=["Astronomy Catalogs"])
+app.include_router(ads_api.router, prefix="/ads", tags=["ADS Literature"])
 
 @app.get("/")
 async def root():

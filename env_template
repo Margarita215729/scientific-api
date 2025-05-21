@@ -1,0 +1,10 @@
+# Пример файла .env
+# Скопируйте этот файл в .env и установите ваши значения
+
+# Токен для NASA/Harvard Astrophysics Data System API
+# Получить токен можно здесь: https://ui.adsabs.harvard.edu/user/settings/token
+ADSABS_TOKEN=your_token_here
+
+# Другие настройки окружения
+# DEBUG=True
+# API_LOG_LEVEL=INFO 

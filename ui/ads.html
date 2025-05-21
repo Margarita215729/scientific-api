@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск научной литературы | ADS API</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Пользовательские стили -->
+    <link href="styles.css" rel="stylesheet">
+    <!-- Chart.js для визуализации -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Шапка -->
+    <header class="bg-dark text-white p-3">
+        <div class="container">
+            <h1 class="h3">Анализ крупномасштабных структур Вселенной</h1>
+            <div class="d-flex justify-content-between align-items-center">
+                <p class="mb-0">Поиск научной литературы через ADS API</p>
+                <a href="index.html" class="btn btn-outline-light btn-sm">Вернуться к каталогам</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной контент -->
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Левая панель с формой поиска -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Поиск научной литературы</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="ads-search-form">
+                            <div class="mb-3">
+                                <label for="ads-search-type" class="form-label">Тип поиска</label>
+                                <select class="form-select" id="ads-search-type" onchange="updateAdsSearchFields()">
+                                    <option value="">Выберите тип поиска</option>
+                                    <option value="coordinates">По координатам</option>
+                                    <option value="object">По названию объекта</option>
+                                    <option value="catalog">По каталогу</option>
+                                    <option value="lss">Крупномасштабные структуры</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Поля для поиска по координатам -->
+                            <div class="mb-3 ads-search-field field-coordinates" style="display: none;">
+                                <label for="ads-ra" class="form-label">Прямое восхождение (RA)</label>
+                                <input type="number" class="form-control" id="ads-ra" step="0.0001">
+                            </div>
+                            <div class="mb-3 ads-search-field field-coordinates" style="display: none;">
+                                <label for="ads-dec" class="form-label">Склонение (DEC)</label>
+                                <input type="number" class="form-control" id="ads-dec" step="0.0001">
+                            </div>
+                            <div class="mb-3 ads-search-field field-coordinates" style="display: none;">
+                                <label for="ads-radius" class="form-label">Радиус поиска (градусы)</label>
+                                <input type="number" class="form-control" id="ads-radius" min="0.01" max="1" step="0.01" value="0.1">
+                            </div>
+                            
+                            <!-- Поля для поиска по названию объекта -->
+                            <div class="mb-3 ads-search-field field-object" style="display: none;">
+                                <label for="ads-object-name" class="form-label">Название объекта</label>
+                                <input type="text" class="form-control" id="ads-object-name" placeholder="Например: M31, NGC 5128">
+                                <div class="form-text">Введите название астрономического объекта.</div>
+                            </div>
+                            
+                            <!-- Поля для поиска по каталогу -->
+                            <div class="mb-3 ads-search-field field-catalog" style="display: none;">
+                                <label for="ads-catalog" class="form-label">Каталог</label>
+                                <select class="form-select" id="ads-catalog">
+                                    <option value="SDSS">SDSS</option>
+                                    <option value="Euclid">Euclid</option>
+                                    <option value="DESI">DESI</option>
+                                    <option value="DES">DES</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Поля для поиска по крупномасштабным структурам -->
+                            <div class="mb-3 ads-search-field field-lss" style="display: none;">
+                                <label for="ads-keywords" class="form-label">Ключевые слова</label>
+                                <input type="text" class="form-control" id="ads-keywords" placeholder="filaments, voids">
+                                <div class="form-text">Разделяйте ключевые слова запятыми.</div>
+                            </div>
+                            <div class="mb-3 ads-search-field field-lss" style="display: none;">
+                                <label for="ads-start-year" class="form-label">Начальный год</label>
+                                <input type="number" class="form-control" id="ads-start-year" min="1950" max="2030" value="2010">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">Искать литературу</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Информация об ADS</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Поиск ведется в Astrophysics Data System (ADS) — цифровой библиотеке NASA для исследований в астрономии и астрофизике.</p>
+                        <p>Для работы с ADS API требуется установить переменную окружения <code>ADSABS_TOKEN</code> с вашим токеном доступа.</p>
+                        <a href="https://ui.adsabs.harvard.edu/" target="_blank" class="btn btn-outline-secondary">Перейти на сайт ADS</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Правая панель с результатами поиска -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Результаты поиска</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="ads-results">
+                            <div class="alert alert-info">
+                                Выберите тип поиска и заполните необходимые поля слева, чтобы найти научную литературу.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white p-3 mt-5">
+        <div class="container">
+            <p class="mb-0 text-center">Разработано для научного исследования крупномасштабных структур Вселенной</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Пользовательский JavaScript -->
+    <script src="script.js"></script>
+    
+    <!-- Скрипт для инициализации страницы -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация обработчика формы и полей
+            document.getElementById('ads-search-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                searchAdsLiterature();
+            });
+            
+            // Инициализация полей формы при изменении типа поиска
+            document.getElementById('ads-search-type').addEventListener('change', function() {
+                updateAdsSearchFields();
+            });
+        });
+    </script>
+</body>
+</html> 
