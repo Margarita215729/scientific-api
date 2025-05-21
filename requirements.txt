@@ -17,3 +17,4 @@ astroquery>=0.4.6
 numpy>=1.23.0
 h5py>=3.8.0
 python-multipart>=0.0.6
+setuptools>=65.5.1
