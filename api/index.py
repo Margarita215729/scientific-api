@@ -18,7 +18,11 @@ app.include_router(ads_api.router, prefix="/ads", tags=["ADS Literature"])
 
 @app.get("/")
 async def root():
-    return {"message": "Добро пожаловать в Scientific API!"}
+    return {"message": "Hello from Scientific API"}
+
+@app.get("/ping")
+async def ping():
+    return {"status": "ok", "message": "API is up and running"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
