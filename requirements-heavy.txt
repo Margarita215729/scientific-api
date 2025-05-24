@@ -33,3 +33,9 @@ google-api-python-client==2.108.0
 
 # For NASA ADS API
 ads==0.12.3
+
+# Missing dependencies for Azure
+feedparser==6.0.10
+matplotlib==3.8.2
+seaborn==0.13.0
+plotly==5.17.0

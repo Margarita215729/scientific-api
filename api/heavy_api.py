@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get Azure API URL from environment
-HEAVY_COMPUTE_URL = os.getenv("HEAVY_COMPUTE_URL", "").strip()
+HEAVY_COMPUTE_URL = os.getenv("HEAVY_COMPUTE_URL", "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000").strip()
 USE_AZURE_API = bool(HEAVY_COMPUTE_URL) and not HEAVY_LIBS_AVAILABLE
 
 logger.info(f"Heavy API initialized - HEAVY_LIBS_AVAILABLE: {HEAVY_LIBS_AVAILABLE}, USE_AZURE_API: {USE_AZURE_API}")
@@ -109,8 +109,8 @@ async def get_astronomical_status():
         except Exception as e:
             logger.error(f"Error calling Azure API: {e}")
             raise HTTPException(
-                status_code=503, 
-                detail=f"Real astronomical data service unavailable: {str(e)}"
+                status_code=503,
+                detail=f"Real astronomical status service unavailable: {str(e)}"
             )
     else:
         raise HTTPException(
