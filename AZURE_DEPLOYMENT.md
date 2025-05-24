@@ -39,19 +39,6 @@
 ```
 Использует существующий локальный образ (может не работать из-за несовместимости архитектур).
 
-## Текущее развертывание
-
-### Полная версия API
-- **URL**: http://scientific-api-full-1748110385.eastus.azurecontainer.io:8000
-- **Документация**: http://scientific-api-full-1748110385.eastus.azurecontainer.io:8000/docs
-- **Проверка**: http://scientific-api-full-1748110385.eastus.azurecontainer.io:8000/ping
-
-### Конфигурация Vercel
-Для интеграции с фронтендом на Vercel добавьте переменную окружения:
-```
-HEAVY_COMPUTE_URL=http://scientific-api-full-1748110385.eastus.azurecontainer.io:8000
-```
-
 ## Доступные эндпоинты
 
 ### Основные
