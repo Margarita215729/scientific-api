@@ -80,12 +80,13 @@ try:
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request):
         try:
+            logger.info(f"Attempting to render index.html from templates directory: {ui_dir}")
             return templates.TemplateResponse("index.html", {"request": request})
         except Exception as e:
             logger.error(f"Error rendering index.html: {e}", exc_info=True)
             return JSONResponse(
                 status_code=500,
-                content={"message": "Error rendering page", "error": str(e)}
+                content={"message": "Error rendering page", "error": str(e), "ui_dir": str(ui_dir)}
             )
 
     @app.get("/api")
