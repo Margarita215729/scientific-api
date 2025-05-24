@@ -29,16 +29,10 @@ echo -e "${YELLOW}Используем ресурсы: 1 CPU, 1.5GB RAM в ре�
 
 # Проверка наличия локального образа
 echo -e "${BLUE}Проверка наличия локального образа...${NC}"
-if ! docker images | grep -q "$LOCAL_IMAGE_TAG"; then
+LOCAL_IMAGE_ID=$(docker images -q "$LOCAL_IMAGE_TAG" 2>/dev/null)
+if [ -z "$LOCAL_IMAGE_ID" ]; then
     echo -e "${RED}Образ $LOCAL_IMAGE_TAG не найден. Пожалуйста, соберите образ перед запуском:${NC}"
     echo -e "${YELLOW}docker build -t $LOCAL_IMAGE_TAG .${NC}"
-    exit 1
-fi
-
-# Получение ID локального образа
-LOCAL_IMAGE_ID=$(docker images $LOCAL_IMAGE_TAG --quiet)
-if [ -z "$LOCAL_IMAGE_ID" ]; then
-    echo -e "${RED}Не удалось получить ID образа $LOCAL_IMAGE_TAG${NC}"
     exit 1
 fi
 echo -e "${GREEN}Найден образ с ID: $LOCAL_IMAGE_ID${NC}"
