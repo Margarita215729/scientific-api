@@ -532,13 +532,10 @@ async def get_full_galaxies_data(
             logger.error(f"Error calling Azure API: {e}")
             raise HTTPException(status_code=500, detail=f"Azure API error: {str(e)}")
     else:
-        # Local fallback - simple mock data
-        return {
-            "status": "ok",
-            "count": min(limit, 50),
-            "galaxies": generate_realistic_galaxy_data(min(limit, 50), None, min_z, max_z),
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production full galaxy data service not configured. No mock data available in production."
+        )
 
 @router.get("/astro/full/stars")
 async def get_full_stars_data(
@@ -563,23 +560,10 @@ async def get_full_stars_data(
             logger.error(f"Error calling Azure API: {e}")
             raise HTTPException(status_code=500, detail=f"Azure API error: {str(e)}")
     else:
-        # Local fallback
-        return {
-            "status": "ok",
-            "count": min(limit, 30),
-            "stars": [
-                {
-                    "id": f"star_{i}",
-                    "ra": 200.0 + i * 0.2,
-                    "dec": 10.0 + i * 0.1,
-                    "magnitude": 10.0 + i * 0.2,
-                    "spectral_type": ["O", "B", "A", "F", "G", "K", "M"][i % 7],
-                    "parallax": 0.1 + i * 0.05
-                }
-                for i in range(min(limit, 30))
-            ],
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production full star data service not configured. No mock data available in production."
+        )
 
 @router.get("/astro/full/nebulae")
 async def get_full_nebulae_data(
@@ -601,23 +585,10 @@ async def get_full_nebulae_data(
             logger.error(f"Error calling Azure API: {e}")
             raise HTTPException(status_code=500, detail=f"Azure API error: {str(e)}")
     else:
-        # Local fallback
-        return {
-            "status": "ok",
-            "count": min(limit, 20),
-            "nebulae": [
-                {
-                    "id": f"nebula_{i}",
-                    "name": f"NGC {1000 + i}",
-                    "ra": 300.0 + i * 0.5,
-                    "dec": 40.0 + i * 0.3,
-                    "type": ["emission", "reflection", "planetary", "dark"][i % 4],
-                    "size_arcmin": 5.0 + i * 2.0
-                }
-                for i in range(min(limit, 20))
-            ],
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production full nebula data service not configured. No mock data available in production."
+        )
 
 # Additional endpoints for datasets, files, ml, analysis
 @router.get("/datasets/list")
@@ -631,51 +602,78 @@ async def list_datasets():
                 return response.json()
         except Exception as e:
             logger.error(f"Error calling Azure API: {e}")
-            return {"datasets": [], "source": "azure_api_error", "error": str(e)}
+            raise HTTPException(
+                status_code=503,
+                detail=f"Real dataset listing service unavailable: {str(e)}"
+            )
     else:
-        return {
-            "datasets": [
-                {"name": "SDSS_DR17", "type": "spectroscopic", "size": "2.1TB"},
-                {"name": "Gaia_EDR3", "type": "astrometric", "size": "1.8TB"},
-                {"name": "WISE_AllSky", "type": "infrared", "size": "850GB"}
-            ],
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production dataset listing service not configured. No mock data available in production."
+        )
 
 @router.get("/files/status")
 async def get_files_status():
     """Get file processing status."""
-    return {
-        "status": "ok",
-        "total_files": 42,
-        "processed": 38,
-        "pending": 4,
-        "azure_api_enabled": USE_AZURE_API
-    }
+    if USE_AZURE_API:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{HEAVY_COMPUTE_URL}/files/status")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"Error calling Azure API: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Real file processing status service unavailable: {str(e)}"
+            )
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="Production file processing status service not configured. No mock data available in production."
+        )
 
 @router.get("/ml/models")
 async def list_ml_models():
     """List available ML models."""
-    return {
-        "models": [
-            {"name": "redshift_estimator", "type": "regression", "accuracy": 0.94},
-            {"name": "galaxy_classifier", "type": "classification", "accuracy": 0.89},
-            {"name": "star_type_classifier", "type": "classification", "accuracy": 0.92}
-        ],
-        "azure_api_enabled": USE_AZURE_API
-    }
+    if USE_AZURE_API:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{HEAVY_COMPUTE_URL}/ml/models")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"Error calling Azure API: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Real ML models service unavailable: {str(e)}"
+            )
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="Production ML models service not configured. No mock data available in production."
+        )
 
 @router.get("/analysis/quick")
 async def quick_analysis():
     """Perform quick data analysis."""
-    return {
-        "status": "ok",
-        "total_objects": 1_245_678,
-        "galaxies": 856_432,
-        "stars": 389_246,
-        "analysis_time": "0.3s",
-        "azure_api_enabled": USE_AZURE_API
-    }
+    if USE_AZURE_API:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{HEAVY_COMPUTE_URL}/analysis/quick")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"Error calling Azure API: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Real analysis service unavailable: {str(e)}"
+            )
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="Production analysis service not configured. No mock data available in production."
+        )
 
 # Include the router in the app
 app.include_router(router) 
