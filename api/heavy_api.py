@@ -7,17 +7,32 @@ Designed for Microsoft Container Instances with 12 CPU cores and 20GB RAM.
 from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks, Query
 from fastapi.responses import JSONResponse, FileResponse
 import os
-import pandas as pd
-import numpy as np
+import logging
 from typing import Dict, Any, List, Optional
 import asyncio
-import logging
 from datetime import datetime
 import json
+import httpx
+
+# Try to import heavy compute libraries
+try:
+    import pandas as pd
+    import numpy as np
+    HEAVY_LIBS_AVAILABLE = True
+except ImportError:
+    pd = None
+    np = None
+    HEAVY_LIBS_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Get Azure API URL from environment
+HEAVY_COMPUTE_URL = os.getenv("HEAVY_COMPUTE_URL", "")
+USE_AZURE_API = bool(HEAVY_COMPUTE_URL) and not HEAVY_LIBS_AVAILABLE
+
+logger.info(f"Heavy API initialized - HEAVY_LIBS_AVAILABLE: {HEAVY_LIBS_AVAILABLE}, USE_AZURE_API: {USE_AZURE_API}")
 
 # Create FastAPI app instance
 app = FastAPI(
