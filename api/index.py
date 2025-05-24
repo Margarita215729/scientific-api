@@ -70,12 +70,19 @@ try:
 
     # Import lightweight router
     try:
-        from api.light_api import router as light_router
-        app.include_router(light_router)
-        logger.info("Successfully loaded light_router")
+        from api.heavy_api import router as heavy_router
+        app.include_router(heavy_router)
+        logger.info("Successfully loaded heavy_router with full functionality")
     except Exception as e:
-        logger.error(f"Error loading light_router: {e}", exc_info=True)
-        raise
+        logger.error(f"Error loading heavy_router: {e}", exc_info=True)
+        # Fallback to light router
+        try:
+            from api.light_api import router as light_router
+            app.include_router(light_router)
+            logger.info("Successfully loaded light_router as fallback")
+        except Exception as e2:
+            logger.error(f"Error loading light_router fallback: {e2}", exc_info=True)
+            raise
 
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request):
@@ -106,10 +113,30 @@ try:
             "environment": "Production" if IS_PRODUCTION else "Development",
             "dependencies": deps,
             "endpoints": {
-                "basic": "/ping",
-                "status": "/status",
-                "astro": "/astro/status",
-                "ads": "/ads/basic"
+                "basic": {
+                    "ping": "/ping",
+                    "status": "/status",
+                    "docs": "/docs"
+                },
+                "ads": {
+                    "search_by_object": "/ads/search-by-object",
+                    "search_by_author": "/ads/search-by-author", 
+                    "search_by_title": "/ads/search-by-title",
+                    "basic": "/ads/basic"
+                },
+                "astro": {
+                    "status": "/astro/status",
+                    "full_catalogs": "/astro/full/*",
+                    "galaxies": "/astro/full/galaxies",
+                    "stars": "/astro/full/stars",
+                    "nebulae": "/astro/full/nebulae"
+                },
+                "additional": {
+                    "datasets": "/datasets/*",
+                    "files": "/files/*", 
+                    "ml": "/ml/*",
+                    "analysis": "/analysis/*"
+                }
             }
         }
 
