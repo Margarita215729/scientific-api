@@ -108,33 +108,76 @@ async def get_astronomical_status():
                 return response.json()
         except Exception as e:
             logger.error(f"Error calling Azure API: {e}")
-            # Return fallback status
-            return {
-                "status": "ok",
-                "catalogs": [
-                    {"name": "SDSS DR17", "available": True, "rows": 500000},
-                    {"name": "DESI DR1", "available": True, "rows": 300000},
-                    {"name": "DES Y6", "available": True, "rows": 200000}
-                ],
-                "data_directory": "azure_api",
-                "total_objects": 1000000,
-                "last_updated": datetime.now().isoformat(),
-                "source": "azure_api_fallback"
-            }
+            raise HTTPException(
+                status_code=503, 
+                detail=f"Real astronomical data service unavailable: {str(e)}"
+            )
     else:
-        # Local fallback when no Azure API
-        return {
-            "status": "ok",
-            "catalogs": [
-                {"name": "Mock SDSS", "available": True, "rows": 1000},
-                {"name": "Mock DESI", "available": True, "rows": 800},
-                {"name": "Mock DES", "available": True, "rows": 600}
-            ],
-            "data_directory": "local_mock",
-            "total_objects": 2400,
-            "last_updated": datetime.now().isoformat(),
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production astronomical data service not configured. No mock data available in production."
+        )
+
+@router.get("/astro")
+async def get_astro_overview():
+    """Get overview of astronomical data services and available endpoints."""
+    return {
+        "service": "Scientific API - Astronomical Data",
+        "version": "2.0.0",
+        "description": "Access to real astronomical catalogs and data processing tools",
+        "status": "operational",
+        "data_sources": [
+            {
+                "name": "SDSS DR17",
+                "description": "Sloan Digital Sky Survey Data Release 17",
+                "type": "spectroscopic catalog",
+                "objects": ["galaxies", "quasars", "stars"]
+            },
+            {
+                "name": "DESI DR1", 
+                "description": "Dark Energy Spectroscopic Instrument Data Release 1",
+                "type": "galaxy redshift survey",
+                "objects": ["galaxies", "quasars"]
+            },
+            {
+                "name": "DES Y6",
+                "description": "Dark Energy Survey Year 6 Gold catalog",
+                "type": "photometric catalog", 
+                "objects": ["galaxies"]
+            },
+            {
+                "name": "Euclid Q1",
+                "description": "Euclid Mission Quarter 1 MER Final catalog",
+                "type": "space-based survey",
+                "objects": ["galaxies", "stars"]
+            }
+        ],
+        "endpoints": {
+            "status": "/astro/status",
+            "statistics": "/astro/statistics", 
+            "galaxies": "/astro/galaxies",
+            "full_catalogs": {
+                "galaxies": "/astro/full/galaxies",
+                "stars": "/astro/full/stars",
+                "nebulae": "/astro/full/nebulae"
+            },
+            "data_processing": {
+                "download": "/astro/download",
+                "download_status": "/astro/download/{task_id}"
+            }
+        },
+        "capabilities": [
+            "Real astronomical data access",
+            "Multi-catalog querying",
+            "Coordinate-based filtering",
+            "Redshift and magnitude filtering", 
+            "ML-ready feature extraction",
+            "Background data processing",
+            "Custom data analysis"
+        ],
+        "azure_api_enabled": USE_AZURE_API,
+        "heavy_libs_available": HEAVY_LIBS_AVAILABLE
+    }
 
 @router.get("/astro/statistics")
 async def get_astronomical_statistics():
@@ -147,29 +190,15 @@ async def get_astronomical_statistics():
                 return response.json()
         except Exception as e:
             logger.error(f"Error calling Azure API: {e}")
-            # Return fallback statistics
-            return {
-                "status": "ok",
-                "total_galaxies": 856432,
-                "total_stars": 389246,
-                "total_nebulae": 12543,
-                "redshift_range": {"min": 0.001, "max": 3.5},
-                "magnitude_range": {"min": 8.2, "max": 25.8},
-                "sky_coverage": {"ra_range": [0, 360], "dec_range": [-90, 90]},
-                "source": "azure_api_fallback"
-            }
+            raise HTTPException(
+                status_code=503,
+                detail=f"Real astronomical statistics service unavailable: {str(e)}"
+            )
     else:
-        # Local fallback
-        return {
-            "status": "ok",
-            "total_galaxies": 2500,
-            "total_stars": 1200,
-            "total_nebulae": 80,
-            "redshift_range": {"min": 0.1, "max": 2.0},
-            "magnitude_range": {"min": 10.0, "max": 22.0},
-            "sky_coverage": {"ra_range": [0, 360], "dec_range": [-20, 80]},
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production astronomical statistics service not configured. No mock data available in production."
+        )
 
 @router.get("/astro/galaxies")
 async def get_galaxies_data(
@@ -181,7 +210,8 @@ async def get_galaxies_data(
     max_ra: Optional[float] = Query(None, description="Maximum RA"),
     min_dec: Optional[float] = Query(None, description="Minimum DEC"),
     max_dec: Optional[float] = Query(None, description="Maximum DEC"),
-    include_ml_features: bool = Query(False, description="Include ML-ready features")
+    include_ml_features: bool = Query(False, description="Include ML-ready features"),
+    force_local: bool = Query(False, description="Force use of local realistic data instead of Azure API")
 ):
     """Get filtered galaxy data from real astronomical catalogs."""
     if USE_AZURE_API:
@@ -206,55 +236,15 @@ async def get_galaxies_data(
                 return response.json()
         except Exception as e:
             logger.error(f"Error calling Azure API: {e}")
-            # Return fallback galaxy data
-            return {
-                "status": "ok",
-                "count": min(limit, 100),
-                "galaxies": [
-                    {
-                        "id": f"fallback_galaxy_{i}",
-                        "ra": 150.0 + i * 0.5,
-                        "dec": 2.0 + i * 0.2,
-                        "redshift": 0.2 + i * 0.01,
-                        "magnitude": 18.0 + i * 0.1,
-                        "source": source or "SDSS"
-                    }
-                    for i in range(min(limit, 100))
-                ],
-                "filters_applied": {
-                    "source": source,
-                    "limit": limit,
-                    "min_z": min_z,
-                    "max_z": max_z
-                },
-                "ml_features_included": include_ml_features,
-                "processing_time": 0.1,
-                "source": "azure_api_fallback"
-            }
+            raise HTTPException(
+                status_code=503,
+                detail=f"Real astronomical galaxy data service unavailable: {str(e)}"
+            )
     else:
-        # Local fallback
-        return {
-            "status": "ok",
-            "count": min(limit, 50),
-            "galaxies": [
-                {
-                    "id": f"mock_galaxy_{i}",
-                    "ra": 200.0 + i * 0.3,
-                    "dec": 5.0 + i * 0.1,
-                    "redshift": 0.3 + i * 0.02,
-                    "magnitude": 17.0 + i * 0.2,
-                    "source": "Mock"
-                }
-                for i in range(min(limit, 50))
-            ],
-            "filters_applied": {
-                "source": source,
-                "limit": limit
-            },
-            "ml_features_included": include_ml_features,
-            "processing_time": 0.05,
-            "source": "local_mock"
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Production astronomical galaxy data service not configured. No mock data available in production."
+        )
 
 @router.post("/ml/prepare-dataset")
 async def prepare_ml_dataset(
@@ -546,17 +536,7 @@ async def get_full_galaxies_data(
         return {
             "status": "ok",
             "count": min(limit, 50),
-            "galaxies": [
-                {
-                    "id": f"galaxy_{i}",
-                    "ra": 150.0 + i * 0.1,
-                    "dec": 2.0 + i * 0.05,
-                    "redshift": 0.1 + i * 0.01,
-                    "magnitude": 18.0 + i * 0.1,
-                    "type": "spiral" if i % 2 == 0 else "elliptical"
-                }
-                for i in range(min(limit, 50))
-            ],
+            "galaxies": generate_realistic_galaxy_data(min(limit, 50), None, min_z, max_z),
             "source": "local_mock"
         }
 
