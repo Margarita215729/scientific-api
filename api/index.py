@@ -76,13 +76,14 @@ try:
     except Exception as e:
         logger.error(f"Error loading heavy_router: {e}", exc_info=True)
         # Fallback to light router
-        try:
-            from api.light_api import router as light_router
-            app.include_router(light_router)
-            logger.info("Successfully loaded light_router as fallback")
-        except Exception as e2:
-            logger.error(f"Error loading light_router fallback: {e2}", exc_info=True)
-            raise
+        # try:
+        #     from api.light_api import router as light_router
+        #     app.include_router(light_router)
+        #     logger.info("Successfully loaded light_router as fallback")
+        # except Exception as e2:
+        #     logger.error(f"Error loading light_router fallback: {e2}", exc_info=True)
+        #     raise
+        raise # Re-raise the exception if heavy_router fails to load
 
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request):
