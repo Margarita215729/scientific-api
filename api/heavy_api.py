@@ -34,6 +34,26 @@ USE_AZURE_API = bool(HEAVY_COMPUTE_URL) and not HEAVY_LIBS_AVAILABLE
 
 logger.info(f"Heavy API initialized - HEAVY_LIBS_AVAILABLE: {HEAVY_LIBS_AVAILABLE}, USE_AZURE_API: {USE_AZURE_API}")
 logger.info(f"HEAVY_COMPUTE_URL: '{HEAVY_COMPUTE_URL}'")
+logger.info(f"Environment HEAVY_COMPUTE_URL raw: '{os.getenv('HEAVY_COMPUTE_URL')}'")
+logger.info(f"Using Azure Functions URL: {'Yes' if 'azurewebsites' in HEAVY_COMPUTE_URL else 'No'}")
+
+# Test Azure connectivity on startup
+async def test_azure_connectivity():
+    if USE_AZURE_API and HEAVY_COMPUTE_URL:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{HEAVY_COMPUTE_URL}/ping")
+                logger.info(f"Azure API connectivity test: {response.status_code}")
+                if response.status_code == 200:
+                    logger.info(f"Azure API response: {response.json()}")
+                else:
+                    logger.error(f"Azure API returned status {response.status_code}")
+        except Exception as e:
+            logger.error(f"Failed to connect to Azure API: {str(e)}")
+
+# Run connectivity test on startup
+import asyncio
+asyncio.create_task(test_azure_connectivity())
 
 # Create FastAPI app instance
 app = FastAPI(
