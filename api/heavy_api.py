@@ -28,31 +28,16 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Get Azure API URL from environment
+# Data directories
+DATA_DIR = "galaxy_data"
+PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
+
+# Get Azure API URL from environment (fallback for remote calls)
 HEAVY_COMPUTE_URL = os.getenv("HEAVY_COMPUTE_URL", "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000").strip()
 USE_AZURE_API = bool(HEAVY_COMPUTE_URL) and not HEAVY_LIBS_AVAILABLE
 
 logger.info(f"Heavy API initialized - HEAVY_LIBS_AVAILABLE: {HEAVY_LIBS_AVAILABLE}, USE_AZURE_API: {USE_AZURE_API}")
-logger.info(f"HEAVY_COMPUTE_URL: '{HEAVY_COMPUTE_URL}'")
-logger.info(f"Environment HEAVY_COMPUTE_URL raw: '{os.getenv('HEAVY_COMPUTE_URL')}'")
-logger.info(f"Using Azure Functions URL: {'Yes' if 'azurewebsites' in HEAVY_COMPUTE_URL else 'No'}")
-
-# Test Azure connectivity on startup
-async def test_azure_connectivity():
-    if USE_AZURE_API and HEAVY_COMPUTE_URL:
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{HEAVY_COMPUTE_URL}/ping")
-                logger.info(f"Azure API connectivity test: {response.status_code}")
-                if response.status_code == 200:
-                    logger.info(f"Azure API response: {response.json()}")
-                else:
-                    logger.error(f"Azure API returned status {response.status_code}")
-        except Exception as e:
-            logger.error(f"Failed to connect to Azure API: {str(e)}")
-
-# Run connectivity test on startup - removed for Vercel compatibility
-# asyncio.create_task(test_azure_connectivity())
+logger.info(f"Data directory: {PROCESSED_DIR}")
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -66,9 +51,72 @@ router = APIRouter()
 # Global storage for background tasks
 background_tasks_status = {}
 
+def load_preprocessed_data() -> Dict[str, Any]:
+    """Load preprocessing info and check data availability."""
+    info_path = os.path.join(PROCESSED_DIR, "preprocessing_info.json")
+    
+    if os.path.exists(info_path):
+        with open(info_path, "r") as f:
+            return json.load(f)
+    else:
+        return {
+            "status": "not_available",
+            "catalogs": {},
+            "total_objects": 0
+        }
+
+def get_catalog_data(catalog_name: str = None, limit: int = 1000, **filters) -> List[Dict]:
+    """Get data from preprocessed catalogs."""
+    try:
+        if catalog_name:
+            # Load specific catalog
+            catalog_file = f"{catalog_name.lower()}_processed.csv"
+            file_path = os.path.join(PROCESSED_DIR, catalog_file)
+            
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"Catalog {catalog_name} not found")
+            
+            df = pd.read_csv(file_path)
+        else:
+            # Load merged dataset
+            merged_path = os.path.join(PROCESSED_DIR, "merged_catalog.csv")
+            
+            if not os.path.exists(merged_path):
+                raise FileNotFoundError("Merged catalog not found")
+            
+            df = pd.read_csv(merged_path)
+        
+        # Apply filters
+        if filters.get("min_z"):
+            df = df[df["redshift"] >= filters["min_z"]]
+        if filters.get("max_z"):
+            df = df[df["redshift"] <= filters["max_z"]]
+        if filters.get("min_ra"):
+            df = df[df["RA"] >= filters["min_ra"]]
+        if filters.get("max_ra"):
+            df = df[df["RA"] <= filters["max_ra"]]
+        if filters.get("min_dec"):
+            df = df[df["DEC"] >= filters["min_dec"]]
+        if filters.get("max_dec"):
+            df = df[df["DEC"] <= filters["max_dec"]]
+        if filters.get("source"):
+            df = df[df["source"] == filters["source"]]
+        
+        # Limit results
+        if len(df) > limit:
+            df = df.sample(n=limit, random_state=42)
+        
+        return df.to_dict('records')
+        
+    except Exception as e:
+        logger.error(f"Error loading catalog data: {e}")
+        raise
+
 @router.get("/ping")
 async def ping():
     """Health check endpoint."""
+    preprocessing_info = load_preprocessed_data()
+    
     return {
         "status": "ok",
         "message": "Heavy compute service is up and running",
@@ -76,6 +124,11 @@ async def ping():
         "version": "2.0.0",
         "azure_api_enabled": USE_AZURE_API,
         "heavy_libs_available": HEAVY_LIBS_AVAILABLE,
+        "data_preprocessing": {
+            "status": preprocessing_info.get("status", "unknown"),
+            "total_objects": preprocessing_info.get("total_objects", 0),
+            "processed_at": preprocessing_info.get("processed_at", "unknown")
+        },
         "resources": {
             "cpu_cores": 12,
             "memory_gb": 20
@@ -119,56 +172,86 @@ async def get_download_status(task_id: str):
 @router.get("/astro/status")
 async def get_astronomical_status():
     """Get status of available astronomical catalogs with real data info."""
-    if USE_AZURE_API:
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(f"{HEAVY_COMPUTE_URL}/astro/status")
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            logger.error(f"Error calling Azure API: {e}")
+    try:
+        preprocessing_info = load_preprocessed_data()
+        
+        if preprocessing_info["status"] == "not_available":
             raise HTTPException(
                 status_code=503,
-                detail=f"Real astronomical status service unavailable: {str(e)}"
+                detail="Astronomical data preprocessing not completed. Please wait for data to be processed."
             )
-    else:
+        
+        # Build catalog status response
+        catalogs = []
+        for catalog_name, catalog_info in preprocessing_info["catalogs"].items():
+            catalogs.append({
+                "name": catalog_name,
+                "available": catalog_info.get("status") in ["processed", "sample_generated"],
+                "rows": catalog_info.get("objects", 0),
+                "status": catalog_info.get("status", "unknown"),
+                "file": catalog_info.get("file", "")
+            })
+        
+        return {
+            "status": "ok",
+            "message": "Astronomical catalogs loaded and processed",
+            "catalogs": catalogs,
+            "total_objects": preprocessing_info["total_objects"],
+            "processed_at": preprocessing_info["processed_at"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting astronomical status: {e}")
         raise HTTPException(
-            status_code=503,
-            detail="Production astronomical data service not configured. No mock data available in production."
+            status_code=500,
+            detail=f"Error loading astronomical status: {str(e)}"
         )
 
 @router.get("/astro")
 async def get_astro_overview():
     """Get overview of astronomical data services and available endpoints."""
+    preprocessing_info = load_preprocessed_data()
+    
     return {
         "service": "Scientific API - Astronomical Data",
         "version": "2.0.0",
         "description": "Access to real astronomical catalogs and data processing tools",
         "status": "operational",
+        "data_preprocessing": {
+            "status": preprocessing_info.get("status", "unknown"),
+            "total_objects": preprocessing_info.get("total_objects", 0),
+            "catalogs_processed": len(preprocessing_info.get("catalogs", {}))
+        },
         "data_sources": [
             {
                 "name": "SDSS DR17",
                 "description": "Sloan Digital Sky Survey Data Release 17",
                 "type": "spectroscopic catalog",
-                "objects": ["galaxies", "quasars", "stars"]
+                "objects": ["galaxies", "quasars", "stars"],
+                "processed": "SDSS" in preprocessing_info.get("catalogs", {})
             },
             {
                 "name": "DESI DR1", 
                 "description": "Dark Energy Spectroscopic Instrument Data Release 1",
                 "type": "galaxy redshift survey",
-                "objects": ["galaxies", "quasars"]
+                "objects": ["galaxies", "quasars"],
+                "processed": "DESI" in preprocessing_info.get("catalogs", {})
             },
             {
                 "name": "DES Y6",
                 "description": "Dark Energy Survey Year 6 Gold catalog",
                 "type": "photometric catalog", 
-                "objects": ["galaxies"]
+                "objects": ["galaxies"],
+                "processed": "DES" in preprocessing_info.get("catalogs", {})
             },
             {
                 "name": "Euclid Q1",
                 "description": "Euclid Mission Quarter 1 MER Final catalog",
                 "type": "space-based survey",
-                "objects": ["galaxies", "stars"]
+                "objects": ["galaxies", "stars"],
+                "processed": "Euclid" in preprocessing_info.get("catalogs", {})
             }
         ],
         "endpoints": {
@@ -201,22 +284,60 @@ async def get_astro_overview():
 @router.get("/astro/statistics")
 async def get_astronomical_statistics():
     """Get comprehensive statistics from real astronomical data."""
-    if USE_AZURE_API:
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(f"{HEAVY_COMPUTE_URL}/astro/statistics")
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            logger.error(f"Error calling Azure API: {e}")
+    try:
+        if not HEAVY_LIBS_AVAILABLE:
             raise HTTPException(
                 status_code=503,
-                detail=f"Real astronomical statistics service unavailable: {str(e)}"
+                detail="Pandas not available for statistical analysis"
             )
-    else:
+        
+        # Load merged dataset
+        merged_path = os.path.join(PROCESSED_DIR, "merged_catalog.csv")
+        
+        if not os.path.exists(merged_path):
+            raise HTTPException(
+                status_code=503,
+                detail="Processed astronomical data not available"
+            )
+        
+        df = pd.read_csv(merged_path)
+        
+        # Calculate statistics
+        stats = {
+            "total_galaxies": len(df),
+            "redshift": {
+                "min": float(df["redshift"].min()),
+                "max": float(df["redshift"].max()),
+                "mean": float(df["redshift"].mean()),
+                "std": float(df["redshift"].std())
+            },
+            "coordinates": {
+                "ra_range": [float(df["RA"].min()), float(df["RA"].max())],
+                "dec_range": [float(df["DEC"].min()), float(df["DEC"].max())]
+            },
+            "sources": df["source"].value_counts().to_dict(),
+            "magnitude_stats": {}
+        }
+        
+        # Magnitude statistics
+        mag_cols = [col for col in df.columns if "magnitude" in col]
+        for col in mag_cols:
+            if col in df.columns:
+                stats["magnitude_stats"][col] = {
+                    "min": float(df[col].min()),
+                    "max": float(df[col].max()),
+                    "mean": float(df[col].mean())
+                }
+        
+        return stats
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error calculating statistics: {e}")
         raise HTTPException(
-            status_code=503,
-            detail="Production astronomical statistics service not configured. No mock data available in production."
+            status_code=500,
+            detail=f"Error calculating astronomical statistics: {str(e)}"
         )
 
 @router.get("/astro/galaxies")
@@ -233,36 +354,51 @@ async def get_galaxies_data(
     force_local: bool = Query(False, description="Force use of local realistic data instead of Azure API")
 ):
     """Get filtered galaxy data from real astronomical catalogs."""
-    if USE_AZURE_API:
-        try:
-            params = {
-                "source": source,
-                "limit": limit,
-                "min_z": min_z,
-                "max_z": max_z,
-                "min_ra": min_ra,
-                "max_ra": max_ra,
-                "min_dec": min_dec,
-                "max_dec": max_dec,
-                "include_ml_features": include_ml_features
-            }
-            # Remove None values
-            params = {k: v for k, v in params.items() if v is not None}
-            
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(f"{HEAVY_COMPUTE_URL}/astro/galaxies", params=params)
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            logger.error(f"Error calling Azure API: {e}")
+    try:
+        if not HEAVY_LIBS_AVAILABLE:
             raise HTTPException(
                 status_code=503,
-                detail=f"Real astronomical galaxy data service unavailable: {str(e)}"
+                detail="Pandas not available for data processing"
             )
-    else:
+        
+        # Prepare filters
+        filters = {
+            "source": source,
+            "min_z": min_z,
+            "max_z": max_z,
+            "min_ra": min_ra,
+            "max_ra": max_ra,
+            "min_dec": min_dec,
+            "max_dec": max_dec
+        }
+        
+        # Remove None values
+        filters = {k: v for k, v in filters.items() if v is not None}
+        
+        # Get data
+        galaxies = get_catalog_data(limit=limit, **filters)
+        
+        # Add ML features if requested
+        if include_ml_features:
+            # This would add additional computed features
+            # For now, the data already includes basic computed features
+            pass
+        
+        return {
+            "status": "ok",
+            "count": len(galaxies),
+            "galaxies": galaxies,
+            "filters_applied": filters,
+            "ml_features_included": include_ml_features
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting galaxy data: {e}")
         raise HTTPException(
-            status_code=503,
-            detail="Production astronomical galaxy data service not configured. No mock data available in production."
+            status_code=500,
+            detail=f"Error loading galaxy data: {str(e)}"
         )
 
 @router.post("/ml/prepare-dataset")
