@@ -8,7 +8,7 @@ set -e
 echo "🚀 Starting production deployment to Azure Container Instances..."
 
 # Configuration
-RESOURCE_GROUP="scientific-api-production"
+RESOURCE_GROUP="scientific-api-prod-westus2"
 CONTAINER_NAME="scientific-api-prod"
 IMAGE_NAME="scientific-api:production"
 REGISTRY_NAME="scientificapiregistry2"
@@ -96,8 +96,8 @@ az container create \
     --registry-password $ACR_PASSWORD \
     --dns-name-label $CONTAINER_NAME \
     --ports 8000 \
-    --cpu 4 \
-    --memory 8 \
+    --cpu 2 \
+    --memory 4 \
     --os-type Linux \
     --environment-variables \
         ENVIRONMENT=production \
