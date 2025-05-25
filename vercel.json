@@ -35,10 +35,5 @@
   "env": {
     "PYTHONPATH": ".",
     "ENVIRONMENT": "production"
-  },
-  "functions": {
-    "main.py": {
-      "maxDuration": 30
-    }
   }
 }
