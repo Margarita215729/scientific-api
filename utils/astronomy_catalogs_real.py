@@ -53,7 +53,8 @@ CATALOG_URLS = {
         "query_service": "https://des.ncsa.illinois.edu/releases/y6/Y6A2_COADD/"
     },
     "Euclid": {
-        "primary": "https://irsa.ipac.caltech.edu/data/Euclid/public/early/Q1/mer/euclid_q1_mer_ppsavcat_v1.0.fits"
+        "primary": "https://irsa.ipac.caltech.edu/ibe/data/euclid/q1/catalogs/MER_FINAL_CATALOG/102018211/EUC_MER_FINAL-CAT_TILE102018211-CC66F6_20241018T214045.289017Z_00.00.fits",
+        "backup": "https://irsa.ipac.caltech.edu/data/Euclid/public/early/Q1/mer/euclid_q1_mer_ppsavcat_v1.0.fits"
     }
 }
 
@@ -288,6 +289,7 @@ class AstronomicalDataProcessor:
                 "RA": ["RA", "RAJ2000", "ALPHA_J2000"],
                 "DEC": ["DEC", "DECJ2000", "DEJ2000", "DELTA_J2000"],
                 "redshift": ["Z", "REDSHIFT", "Z_NOQSO"],
+                "object_id": ["SPECOBJID", "OBJID", "ID", "SOURCE_ID"],
                 "magnitude_r": ["PETROMAG_R", "MODELMAG_R", "MAG_R"],
                 "magnitude_g": ["PETROMAG_G", "MODELMAG_G", "MAG_G"],
                 "magnitude_i": ["PETROMAG_I", "MODELMAG_I", "MAG_I"]
@@ -296,6 +298,7 @@ class AstronomicalDataProcessor:
                 "RA": ["RA", "TARGET_RA", "RA_TARGET"],
                 "DEC": ["DEC", "TARGET_DEC", "DEC_TARGET"],
                 "redshift": ["Z", "Z_SPEC", "REDSHIFT", "Z_PHOT"],
+                "object_id": ["TARGETID", "ID", "SOURCE_ID"],
                 "magnitude_r": ["MAG_R", "FLUX_R", "R_MAG"],
                 "magnitude_g": ["MAG_G", "FLUX_G", "G_MAG"],
                 "magnitude_z": ["MAG_Z", "FLUX_Z", "Z_MAG"]
@@ -304,17 +307,20 @@ class AstronomicalDataProcessor:
                 "RA": ["RA", "ALPHAWIN_J2000", "ALPHA_J2000"],
                 "DEC": ["DEC", "DELTAWIN_J2000", "DELTA_J2000"],
                 "redshift": ["DNF_ZMC_SOF", "Z_MC", "PHOTOZ"],
+                "object_id": ["COADD_OBJECT_ID", "ID", "SOURCE_ID"],
                 "magnitude_r": ["MAG_AUTO_R", "MAG_R"],
                 "magnitude_g": ["MAG_AUTO_G", "MAG_G"],
                 "magnitude_i": ["MAG_AUTO_I", "MAG_I"]
             },
             "Euclid": {
-                "RA": ["RA", "RAJ2000", "ALPHA_J2000"],
-                "DEC": ["DEC", "DECJ2000", "DELTA_J2000"],
+                "RA": ["RIGHT_ASCENSION", "RA", "RAJ2000", "ALPHA_J2000"],
+                "DEC": ["DECLINATION", "DEC", "DECJ2000", "DELTA_J2000"],
                 "redshift": ["Z_PHOT", "PHOTOZ", "Z_B"],
-                "magnitude_vis": ["MAG_VIS", "VIS_MAG"],
-                "magnitude_y": ["MAG_Y", "Y_MAG"],
-                "magnitude_j": ["MAG_J", "J_MAG"]
+                "object_id": ["OBJECT_ID", "ID", "SOURCE_ID"],
+                "magnitude_vis": ["FLUX_VIS_1FWHM_APER", "MAG_VIS", "VIS_MAG"],
+                "magnitude_y": ["FLUX_Y_1FWHM_APER", "MAG_Y", "Y_MAG"],
+                "magnitude_j": ["FLUX_J_1FWHM_APER", "MAG_J", "J_MAG"],
+                "magnitude_h": ["FLUX_H_1FWHM_APER", "MAG_H", "H_MAG"]
             }
         }
         

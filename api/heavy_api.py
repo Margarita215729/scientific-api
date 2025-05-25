@@ -53,17 +53,42 @@ background_tasks_status = {}
 
 def load_preprocessed_data() -> Dict[str, Any]:
     """Load preprocessing info and check data availability."""
-    info_path = os.path.join(PROCESSED_DIR, "preprocessing_info.json")
+    # Check if merged dataset exists
+    merged_path = os.path.join(PROCESSED_DIR, "merged_catalog.csv")
     
-    if os.path.exists(info_path):
-        with open(info_path, "r") as f:
-            return json.load(f)
-    else:
-        return {
-            "status": "not_available",
-            "catalogs": {},
-            "total_objects": 0
-        }
+    if os.path.exists(merged_path):
+        try:
+            df = pd.read_csv(merged_path)
+            total_objects = len(df)
+            
+            # Check individual catalogs
+            catalogs = {}
+            for catalog_name in ["sdss", "desi"]:
+                catalog_file = f"{catalog_name}_processed.csv"
+                catalog_path = os.path.join(PROCESSED_DIR, catalog_file)
+                if os.path.exists(catalog_path):
+                    catalog_df = pd.read_csv(catalog_path)
+                    catalogs[catalog_name.upper()] = {
+                        "status": "success",
+                        "objects": len(catalog_df),
+                        "file": catalog_path
+                    }
+            
+            return {
+                "status": "completed",
+                "catalogs": catalogs,
+                "total_objects": total_objects,
+                "processed_at": datetime.now().isoformat(),
+                "merged_dataset": merged_path
+            }
+        except Exception as e:
+            logger.error(f"Error loading merged dataset: {e}")
+    
+    return {
+        "status": "not_available",
+        "catalogs": {},
+        "total_objects": 0
+    }
 
 def get_catalog_data(catalog_name: str = None, limit: int = 1000, **filters) -> List[Dict]:
     """Get data from preprocessed catalogs."""
@@ -86,25 +111,28 @@ def get_catalog_data(catalog_name: str = None, limit: int = 1000, **filters) -> 
             
             df = pd.read_csv(merged_path)
         
-        # Apply filters
-        if filters.get("min_z"):
-            df = df[df["redshift"] >= filters["min_z"]]
-        if filters.get("max_z"):
-            df = df[df["redshift"] <= filters["max_z"]]
-        if filters.get("min_ra"):
-            df = df[df["RA"] >= filters["min_ra"]]
-        if filters.get("max_ra"):
-            df = df[df["RA"] <= filters["max_ra"]]
-        if filters.get("min_dec"):
-            df = df[df["DEC"] >= filters["min_dec"]]
-        if filters.get("max_dec"):
-            df = df[df["DEC"] <= filters["max_dec"]]
-        if filters.get("source"):
-            df = df[df["source"] == filters["source"]]
+        # Apply filters using new column names
+        if filters.get("min_z") and "z" in df.columns:
+            df = df[df["z"] >= filters["min_z"]]
+        if filters.get("max_z") and "z" in df.columns:
+            df = df[df["z"] <= filters["max_z"]]
+        if filters.get("min_ra") and "ra" in df.columns:
+            df = df[df["ra"] >= filters["min_ra"]]
+        if filters.get("max_ra") and "ra" in df.columns:
+            df = df[df["ra"] <= filters["max_ra"]]
+        if filters.get("min_dec") and "dec" in df.columns:
+            df = df[df["dec"] >= filters["min_dec"]]
+        if filters.get("max_dec") and "dec" in df.columns:
+            df = df[df["dec"] <= filters["max_dec"]]
+        if filters.get("source") and "catalog" in df.columns:
+            df = df[df["catalog"] == filters["source"]]
         
         # Limit results
         if len(df) > limit:
             df = df.sample(n=limit, random_state=42)
+        
+        # Handle NaN values for JSON serialization
+        df = df.replace([np.nan, np.inf, -np.inf], None)  # Replace NaN/Inf with None
         
         return df.to_dict('records')
         
@@ -278,7 +306,7 @@ async def get_astro_overview():
             "Custom data analysis"
         ],
         "azure_api_enabled": USE_AZURE_API,
-        "heavy_libs_available": HEAVY_LIBS_AVAILABLE
+        "heavy_libs_available": HEAVY_LIBS_AVAILABLE,
     }
 
 @router.get("/astro/statistics")

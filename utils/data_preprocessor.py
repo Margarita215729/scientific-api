@@ -8,89 +8,147 @@ import pandas as pd
 import numpy as np
 import logging
 import asyncio
-import httpx
+import aiohttp
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional, Any
+from pathlib import Path
 import json
+import ssl
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Data directory
-DATA_DIR = "galaxy_data"
-PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
-CACHE_DIR = os.path.join(DATA_DIR, "cache")
-
 class AstronomicalDataPreprocessor:
-    """Main class for preprocessing astronomical catalogs."""
+    """Preprocessor for astronomical catalogs from SDSS, DESI, DES, and Euclid."""
     
-    def __init__(self):
-        """Initialize the preprocessor."""
-        self.ensure_directories()
+    def __init__(self, data_dir: str = "galaxy_data"):
+        self.data_dir = Path(data_dir)
+        self.cache_dir = self.data_dir / "cache"
+        self.processed_dir = self.data_dir / "processed"
+        
+        # Create directories
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.processed_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Catalog configurations with alternative column names
         self.catalogs = {
             "SDSS": {
                 "url": "https://dr18.sdss.org/sas/dr18/spectro/boss/redux/v6_0_4/spAll-v6_0_4.fits",
-                "columns": ["RA", "DEC", "Z", "Z_ERR", "MODELFLUX_G", "MODELFLUX_R", "MODELFLUX_I"],
+                "columns": {
+                    "ra": ["PLUG_RA", "RA", "RAJ2000", "ALPHA_J2000"],
+                    "dec": ["PLUG_DEC", "DEC", "DECJ2000", "DEJ2000", "DELTA_J2000"],
+                    "z": ["Z", "REDSHIFT", "PHOTOZ", "Z_MEAN", "Z_SPEC", "ZPHOT"],
+                    "z_err": ["Z_ERR", "ZERR", "Z_ERR_SPEC", "REDSHIFT_ERR"],
+                    "mag_g": ["MAG", "PSFMAG_G", "FIBERMAG_G", "MAG_G"],
+                    "mag_r": ["MAG", "PSFMAG_R", "FIBERMAG_R", "MAG_R"],
+                    "mag_i": ["MAG", "PSFMAG_I", "FIBERMAG_I", "MAG_I"]
+                },
                 "processed_name": "sdss_processed.csv",
                 "sample_size": 50000
             },
             "DESI": {
                 "url": "https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/zcatalog/zall-pix-fuji.fits",
-                "columns": ["TARGET_RA", "TARGET_DEC", "Z", "ZERR", "FLUX_G", "FLUX_R", "FLUX_Z"],
+                "columns": {
+                    "ra": ["TARGET_RA", "RA", "RAJ2000"],
+                    "dec": ["TARGET_DEC", "DEC", "DECJ2000"],
+                    "z": ["Z", "REDSHIFT", "Z_SPEC"],
+                    "z_err": ["ZERR", "Z_ERR", "REDSHIFT_ERR"],
+                    "mag_g": ["FLUX_G", "MAG_G", "PSFMAG_G"],
+                    "mag_r": ["FLUX_R", "MAG_R", "PSFMAG_R"],
+                    "mag_z": ["FLUX_Z", "MAG_Z", "PSFMAG_Z"]
+                },
                 "processed_name": "desi_processed.csv",
                 "sample_size": 30000
             },
             "DES": {
-                "url": "https://des.ncsa.illinois.edu/releases/y6a2/Y6A2_GOLD_2_0.h5",
-                "columns": ["RA", "DEC", "DNF_ZMEAN_SOF", "DNF_ZSIGMA_SOF", "MAG_AUTO_G", "MAG_AUTO_R", "MAG_AUTO_I"],
-                "processed_name": "des_processed.csv", 
+                "url": "https://desdr-server.ncsa.illinois.edu/despublic/y6a2_files/y6_gold/Y6_GOLD_2_2-519.json",
+                "columns": {
+                    "ra": ["ALPHAWIN_J2000", "RA", "RAJ2000", "ALPHA_J2000"],
+                    "dec": ["DELTAWIN_J2000", "DEC", "DECJ2000", "DELTA_J2000"],
+                    "z": ["DNF_ZMEAN_SOF", "Z_PHOT", "PHOTOZ", "Z_MEAN", "REDSHIFT"],
+                    "z_err": ["DNF_ZSIGMA_SOF", "Z_PHOT_ERR", "PHOTOZ_ERR", "Z_ERR"],
+                    "mag_g": ["WAVG_MAG_PSF_G", "MAG_AUTO_G", "MAG_G"],
+                    "mag_r": ["WAVG_MAG_PSF_R", "MAG_AUTO_R", "MAG_R"],
+                    "mag_i": ["WAVG_MAG_PSF_I", "MAG_AUTO_I", "MAG_I"]
+                },
+                "processed_name": "des_processed.csv",
                 "sample_size": 40000
             },
             "Euclid": {
-                "url": "https://archives.esac.esa.int/euclid/data/q1/EUC_MER_SOC-CAT-VIS_20241101T000000.0_20241130T235959.9_01.00.fits",
-                "columns": ["RA", "DEC", "PHOTO_Z", "PHOTO_Z_ERR", "MAG_VIS", "MAG_Y", "MAG_J"],
+                "url": "https://irsa.ipac.caltech.edu/ibe/data/euclid/q1/catalogs/MER_FINAL_CATALOG/102018211/EUC_MER_FINAL-CAT_TILE102018211-CC66F6_20241018T214045.289017Z_00.00.fits",
+                "columns": {
+                    "ra": ["RIGHT_ASCENSION", "RA", "RAJ2000", "ALPHA_J2000"],
+                    "dec": ["DECLINATION", "DEC", "DECJ2000", "DELTA_J2000"],
+                    "z": ["Z_PHOT", "PHOTOZ", "Z_B", "REDSHIFT"],
+                    "z_err": ["Z_PHOT_ERR", "PHOTOZ_ERR", "Z_ERR"],
+                    "object_id": ["OBJECT_ID", "ID", "SOURCE_ID"],
+                    "mag_vis": ["FLUX_VIS_1FWHM_APER", "MAG_VIS", "VIS_MAG"],
+                    "mag_y": ["FLUX_Y_1FWHM_APER", "MAG_Y", "Y_MAG"],
+                    "mag_j": ["FLUX_J_1FWHM_APER", "MAG_J", "J_MAG"],
+                    "mag_h": ["FLUX_H_1FWHM_APER", "MAG_H", "H_MAG"]
+                },
                 "processed_name": "euclid_processed.csv",
-                "sample_size": 20000
+                "sample_size": 30000
             }
         }
-        
-    def ensure_directories(self):
-        """Create necessary directories."""
-        os.makedirs(DATA_DIR, exist_ok=True)
-        os.makedirs(PROCESSED_DIR, exist_ok=True)
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        
+    
+    def find_column_name(self, available_columns: List[str], possible_names: List[str]) -> Optional[str]:
+        """Find the first matching column name from a list of possibilities."""
+        available_upper = [col.upper() for col in available_columns]
+        for name in possible_names:
+            if name.upper() in available_upper:
+                # Return the original case column name
+                idx = available_upper.index(name.upper())
+                return available_columns[idx]
+        return None
+    
     async def download_catalog(self, catalog_name: str, catalog_info: Dict) -> Optional[str]:
-        """Download a catalog from its source."""
-        if not catalog_info.get("url"):
-            logger.warning(f"No URL available for {catalog_name}")
+        """Download a catalog file."""
+        url = catalog_info["url"]
+        if not url:
+            logger.warning(f"No URL provided for {catalog_name}")
             return None
             
-        cache_path = os.path.join(CACHE_DIR, f"{catalog_name.lower()}_raw.fits")
-        
-        # Check if already cached
-        if os.path.exists(cache_path):
-            logger.info(f"{catalog_name} already cached at {cache_path}")
-            return cache_path
+        # Determine file extension from URL
+        if url.endswith('.fits'):
+            filename = f"{catalog_name.lower()}_raw.fits"
+        elif url.endswith('.h5'):
+            filename = f"{catalog_name.lower()}_raw.h5"
+        elif url.endswith('.parquet'):
+            filename = f"{catalog_name.lower()}_raw.parquet"
+        else:
+            filename = f"{catalog_name.lower()}_raw.fits"  # Default to FITS
             
-        logger.info(f"Downloading {catalog_name} from {catalog_info['url']}")
+        file_path = self.cache_dir / filename
+        
+        if file_path.exists():
+            logger.info(f"Using cached {catalog_name} data: {file_path}")
+            return str(file_path)
+        
+        logger.info(f"Downloading {catalog_name} from {url}")
         
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.get(catalog_info["url"])
-                response.raise_for_status()
-                
-                with open(cache_path, "wb") as f:
-                    f.write(response.content)
-                    
-                logger.info(f"Downloaded {catalog_name} to {cache_path}")
-                return cache_path
-                
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        with open(file_path, 'wb') as f:
+                            async for chunk in response.content.iter_chunked(8192):
+                                f.write(chunk)
+                        logger.info(f"Downloaded {catalog_name} to {file_path}")
+                        return str(file_path)
+                    else:
+                        logger.error(f"Failed to download {catalog_name}: HTTP {response.status}")
+                        return None
         except Exception as e:
-            logger.error(f"Failed to download {catalog_name}: {e}")
+            logger.error(f"Error downloading {catalog_name}: {e}")
             return None
-    
+
     def process_catalog(self, catalog_name: str, catalog_info: Dict, file_path: str) -> Optional[str]:
         """Process and normalize a catalog."""
         try:
@@ -98,133 +156,184 @@ class AstronomicalDataPreprocessor:
             
             # Try to read FITS file
             try:
-                from astropy.io import fits
-                with fits.open(file_path) as hdul:
-                    data = hdul[1].data  # Usually data is in extension 1
-                    df = pd.DataFrame(data)
+                if file_path.endswith('.parquet'):
+                    # Handle Parquet files (like DES)
+                    df = pd.read_parquet(file_path)
+                    logger.info(f"Read Parquet file with {len(df)} rows and {len(df.columns)} columns")
+                elif file_path.endswith('.h5'):
+                    # Handle H5 files
+                    import h5py
+                    with h5py.File(file_path, 'r') as f:
+                        # Find the main dataset
+                        datasets = []
+                        f.visititems(lambda name, obj: datasets.append(name) if isinstance(obj, h5py.Dataset) else None)
+                        
+                        if datasets:
+                            main_dataset = datasets[0]  # Use first dataset
+                            logger.info(f"Reading H5 dataset: {main_dataset}")
+                            data = f[main_dataset][:]
+                            df = pd.DataFrame(data)
+                        else:
+                            logger.error("No datasets found in H5 file")
+                            return None
+                else:
+                    # Handle FITS files
+                    from astropy.io import fits
+                    from astropy.table import Table
+                    with fits.open(file_path) as hdul:
+                        # Try different extensions
+                        for i, hdu in enumerate(hdul):
+                            if hasattr(hdu, 'data') and hdu.data is not None:
+                                logger.info(f"Reading data from HDU {i}")
+                                # Convert astropy table to pandas DataFrame
+                                table = Table(hdu.data)
+                                
+                                # Filter out multidimensional columns
+                                simple_columns = []
+                                for col_name in table.colnames:
+                                    col = table[col_name]
+                                    if len(col.shape) == 1:  # Only 1D columns
+                                        simple_columns.append(col_name)
+                                    else:
+                                        logger.debug(f"Skipping multidimensional column: {col_name} with shape {col.shape}")
+                                
+                                # Create DataFrame with only simple columns
+                                simple_table = table[simple_columns]
+                                df = simple_table.to_pandas()
+                                break
+                        else:
+                            logger.error("No valid data found in FITS file")
+                            return None
             except ImportError:
                 logger.error("astropy not available - cannot process FITS files")
                 return None
             except Exception as e:
-                logger.error(f"Error reading FITS file: {e}")
+                logger.error(f"Error reading file: {e}")
                 return None
             
-            # Normalize column names
-            df = self.normalize_columns(df, catalog_name)
+            # Normalize column names using the mapping
+            df = self.normalize_columns(df, catalog_name, catalog_info)
+            if df is None:
+                return None
             
             # Clean and filter data
             df = self.clean_data(df)
             
             # Sample data if too large
-            if len(df) > catalog_info["sample_size"]:
-                df = df.sample(n=catalog_info["sample_size"], random_state=42)
-                
-            # Add computed features
-            df = self.add_computed_features(df, catalog_name)
+            sample_size = catalog_info.get("sample_size", 50000)
+            if len(df) > sample_size:
+                df = df.sample(n=sample_size, random_state=42)
+                logger.info(f"Sampled {sample_size} objects from {catalog_name}")
+            
+            # Add catalog source
+            df['catalog'] = catalog_name
             
             # Save processed data
-            output_path = os.path.join(PROCESSED_DIR, catalog_info["processed_name"])
+            output_path = self.processed_dir / catalog_info["processed_name"]
             df.to_csv(output_path, index=False)
+            logger.info(f"Saved processed {catalog_name} data: {output_path}")
             
-            logger.info(f"Processed {catalog_name}: {len(df)} objects saved to {output_path}")
-            return output_path
+            return str(output_path)
             
         except Exception as e:
             logger.error(f"Error processing {catalog_name}: {e}")
             return None
     
-    def normalize_columns(self, df: pd.DataFrame, catalog_name: str) -> pd.DataFrame:
-        """Normalize column names to standard format."""
-        column_mapping = {
-            "SDSS": {
-                "Z": "redshift",
-                "Z_ERR": "redshift_err",
-                "MODELFLUX_G": "magnitude_g",
-                "MODELFLUX_R": "magnitude_r", 
-                "MODELFLUX_I": "magnitude_i"
-            },
-            "DESI": {
-                "TARGET_RA": "RA",
-                "TARGET_DEC": "DEC",
-                "Z": "redshift",
-                "ZERR": "redshift_err",
-                "FLUX_G": "magnitude_g",
-                "FLUX_R": "magnitude_r",
-                "FLUX_Z": "magnitude_i"
-            },
-            "DES": {
-                "DNF_ZMEAN_SOF": "redshift",
-                "DNF_ZSIGMA_SOF": "redshift_err",
-                "MAG_AUTO_G": "magnitude_g",
-                "MAG_AUTO_R": "magnitude_r",
-                "MAG_AUTO_I": "magnitude_i"
-            },
-            "Euclid": {
-                "PHOTO_Z": "redshift",
-                "PHOTO_Z_ERR": "redshift_err",
-                "MAG_VIS": "magnitude_g",
-                "MAG_Y": "magnitude_r",
-                "MAG_J": "magnitude_i"
-            }
-        }
-        
-        mapping = column_mapping.get(catalog_name, {})
-        df = df.rename(columns=mapping)
-        
-        # Add source column
-        df["source"] = catalog_name
-        
-        return df
+    def normalize_columns(self, df: pd.DataFrame, catalog_name: str, catalog_info: Dict) -> Optional[pd.DataFrame]:
+        """Normalize column names using the mapping."""
+        try:
+            available_columns = list(df.columns)
+            logger.info(f"Available columns in {catalog_name}: {available_columns[:10]}...")  # Show first 10
+            
+            column_mapping = {}
+            required_columns = ['ra', 'dec', 'z']
+            
+            for standard_name, possible_names in catalog_info["columns"].items():
+                found_column = self.find_column_name(available_columns, possible_names)
+                if found_column:
+                    column_mapping[found_column] = standard_name
+                    logger.info(f"Mapped {found_column} -> {standard_name}")
+                elif standard_name in required_columns:
+                    logger.error(f"Required column '{standard_name}' not found in {catalog_name}")
+                    logger.error(f"Looked for: {possible_names}")
+                    return None
+            
+            if not column_mapping:
+                logger.error(f"No columns could be mapped for {catalog_name}")
+                return None
+            
+            # Rename columns
+            df_normalized = df.rename(columns=column_mapping)
+            
+            # Keep only mapped columns
+            mapped_columns = list(column_mapping.values())
+            df_normalized = df_normalized[mapped_columns]
+            
+            logger.info(f"Normalized {catalog_name} columns: {mapped_columns}")
+            return df_normalized
+            
+        except Exception as e:
+            logger.error(f"Error normalizing columns for {catalog_name}: {e}")
+            return None
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Clean and filter astronomical data."""
-        # Remove invalid coordinates
-        df = df[(df["RA"] >= 0) & (df["RA"] <= 360)]
-        df = df[(df["DEC"] >= -90) & (df["DEC"] <= 90)]
+        """Clean and validate astronomical data."""
+        initial_count = len(df)
         
-        # Remove invalid redshifts
-        if "redshift" in df.columns:
-            df = df[(df["redshift"] > 0) & (df["redshift"] < 10)]
-            df = df[df["redshift"].notna()]
+        # Remove rows with invalid coordinates
+        df = df.dropna(subset=['ra', 'dec'])
+        df = df[(df['ra'] >= 0) & (df['ra'] <= 360)]
+        df = df[(df['dec'] >= -90) & (df['dec'] <= 90)]
         
-        # Remove invalid magnitudes
-        mag_cols = [col for col in df.columns if "magnitude" in col]
-        for col in mag_cols:
-            if col in df.columns:
-                df = df[(df[col] > 10) & (df[col] < 30)]
-                df = df[df[col].notna()]
+        # Remove rows with invalid redshifts
+        if 'z' in df.columns:
+            df = df.dropna(subset=['z'])
+            df = df[(df['z'] >= 0) & (df['z'] <= 10)]  # Reasonable redshift range
         
-        # Remove duplicates
-        df = df.drop_duplicates(subset=["RA", "DEC"], keep="first")
+        # Remove rows with invalid magnitudes (if present)
+        mag_columns = [col for col in df.columns if col.startswith('mag_')]
+        for mag_col in mag_columns:
+            if mag_col in df.columns:
+                df = df.dropna(subset=[mag_col])
+                df = df[(df[mag_col] > 0) & (df[mag_col] < 30)]  # Reasonable magnitude range
+        
+        cleaned_count = len(df)
+        logger.info(f"Cleaned data: {initial_count} -> {cleaned_count} objects")
         
         return df
     
-    def add_computed_features(self, df: pd.DataFrame, catalog_name: str) -> pd.DataFrame:
-        """Add computed astronomical features."""
-        # Convert to 3D cartesian coordinates
-        if "redshift" in df.columns:
-            # Simplified distance calculation (assuming flat cosmology)
-            # Distance in Mpc (very simplified)
-            c = 299792.458  # km/s
-            H0 = 70  # km/s/Mpc
-            distance = c * df["redshift"] / H0
+    def add_derived_properties(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Add derived astronomical properties."""
+        try:
+            # Add Cartesian coordinates (simplified, assuming flat cosmology)
+            if 'z' in df.columns:
+                # Simple distance calculation (not cosmologically accurate)
+                c = 299792.458  # km/s
+                H0 = 70  # km/s/Mpc
+                df['distance_mpc'] = (c * df['z']) / H0
+                
+                # Convert to Cartesian coordinates
+                ra_rad = np.radians(df['ra'])
+                dec_rad = np.radians(df['dec'])
+                
+                df['x'] = df['distance_mpc'] * np.cos(dec_rad) * np.cos(ra_rad)
+                df['y'] = df['distance_mpc'] * np.cos(dec_rad) * np.sin(ra_rad)
+                df['z_coord'] = df['distance_mpc'] * np.sin(dec_rad)
             
-            # Convert to cartesian coordinates
-            ra_rad = np.radians(df["RA"])
-            dec_rad = np.radians(df["DEC"])
+            # Add color indices if multiple magnitudes available
+            mag_columns = [col for col in df.columns if col.startswith('mag_')]
+            if len(mag_columns) >= 2:
+                for i in range(len(mag_columns) - 1):
+                    mag1, mag2 = mag_columns[i], mag_columns[i + 1]
+                    color_name = f"color_{mag1.split('_')[1]}_{mag2.split('_')[1]}"
+                    df[color_name] = df[mag1] - df[mag2]
             
-            df["X"] = distance * np.cos(dec_rad) * np.cos(ra_rad)
-            df["Y"] = distance * np.cos(dec_rad) * np.sin(ra_rad)
-            df["Z"] = distance * np.sin(dec_rad)
-        
-        # Add color indices
-        if "magnitude_g" in df.columns and "magnitude_r" in df.columns:
-            df["color_g_r"] = df["magnitude_g"] - df["magnitude_r"]
-        
-        if "magnitude_r" in df.columns and "magnitude_i" in df.columns:
-            df["color_r_i"] = df["magnitude_r"] - df["magnitude_i"]
-        
-        return df
+            logger.info("Added derived properties")
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error adding derived properties: {e}")
+            return df
     
     async def preprocess_all_catalogs(self) -> Dict[str, Any]:
         """Preprocess all available catalogs."""
@@ -245,102 +354,125 @@ class AstronomicalDataPreprocessor:
                 if catalog_info["url"]:
                     file_path = await self.download_catalog(catalog_name, catalog_info)
                     if not file_path:
-                        # No fallback - real data only
-                        results["catalogs"][catalog_name] = {
-                            "status": "failed",
-                            "error": "Failed to download real data"
-                        }
+                        logger.error(f"Failed to download {catalog_name}")
+                        results["catalogs"][catalog_name] = {"status": "download_failed"}
                         continue
-                    
-                    # Process downloaded data
-                    output_path = self.process_catalog(catalog_name, catalog_info, file_path)
-                    if output_path and os.path.exists(output_path):
-                        df = pd.read_csv(output_path)
-                        results["catalogs"][catalog_name] = {
-                            "status": "processed",
-                            "objects": len(df),
-                            "file": output_path
-                        }
-                        results["total_objects"] += len(df)
-                    else:
-                        results["catalogs"][catalog_name] = {
-                            "status": "failed",
-                            "error": "Failed to process real data"
-                        }
                 else:
-                    # No URL - cannot process
-                    results["catalogs"][catalog_name] = {
-                        "status": "failed",
-                        "error": "No URL available for real data"
-                    }
+                    logger.error(f"No URL provided for {catalog_name}")
+                    results["catalogs"][catalog_name] = {"status": "no_url"}
+                    continue
+                
+                # Process catalog
+                processed_path = self.process_catalog(catalog_name, catalog_info, file_path)
+                if not processed_path:
+                    logger.error(f"Failed to process {catalog_name}")
+                    results["catalogs"][catalog_name] = {"status": "processing_failed"}
+                    continue
+                
+                # Load processed data to get statistics
+                df = pd.read_csv(processed_path)
+                df = self.add_derived_properties(df)
+                df.to_csv(processed_path, index=False)  # Save with derived properties
+                
+                results["catalogs"][catalog_name] = {
+                    "status": "success",
+                    "objects": len(df),
+                    "file": processed_path,
+                    "columns": list(df.columns)
+                }
+                results["total_objects"] += len(df)
+                
+                logger.info(f"Successfully processed {catalog_name}: {len(df)} objects")
                 
             except Exception as e:
                 logger.error(f"Error processing {catalog_name}: {e}")
-                results["catalogs"][catalog_name] = {
-                    "status": "failed",
-                    "error": str(e)
-                }
+                results["catalogs"][catalog_name] = {"status": "error", "error": str(e)}
         
-        # Create merged dataset only if we have successful catalogs
-        successful_catalogs = [name for name, info in results["catalogs"].items() 
-                             if info["status"] == "processed"]
-        
-        if successful_catalogs:
-            self.create_merged_dataset(results)
-        else:
-            logger.error("No catalogs were successfully processed")
-            results["status"] = "failed"
-            results["error"] = "No real astronomical data could be processed"
-        
-        # Save preprocessing info
-        info_path = os.path.join(PROCESSED_DIR, "preprocessing_info.json")
-        with open(info_path, "w") as f:
-            json.dump(results, f, indent=2)
+        # Create merged dataset
+        if results["total_objects"] > 0:
+            merged_path = await self.create_merged_dataset()
+            if merged_path:
+                results["merged_dataset"] = merged_path
         
         logger.info(f"Preprocessing completed. Total objects: {results['total_objects']}")
         return results
     
-    def create_merged_dataset(self, results: Dict[str, Any]):
+    async def create_merged_dataset(self) -> Optional[str]:
         """Create a merged dataset from all processed catalogs."""
         try:
-            dataframes = []
+            logger.info("Creating merged dataset...")
             
-            for catalog_name, catalog_result in results["catalogs"].items():
-                if catalog_result["status"] in ["processed", "sample_generated"]:
-                    file_path = catalog_result["file"]
-                    if os.path.exists(file_path):
-                        df = pd.read_csv(file_path)
-                        dataframes.append(df)
+            all_dataframes = []
+            for catalog_name, catalog_info in self.catalogs.items():
+                processed_path = self.processed_dir / catalog_info["processed_name"]
+                if processed_path.exists():
+                    df = pd.read_csv(processed_path)
+                    all_dataframes.append(df)
+                    logger.info(f"Added {len(df)} objects from {catalog_name}")
             
-            if dataframes:
-                merged_df = pd.concat(dataframes, ignore_index=True)
-                
-                # Remove duplicates based on coordinates
-                merged_df = merged_df.drop_duplicates(subset=["RA", "DEC"], keep="first")
-                
-                # Save merged dataset
-                merged_path = os.path.join(PROCESSED_DIR, "merged_catalog.csv")
-                merged_df.to_csv(merged_path, index=False)
-                
-                logger.info(f"Created merged dataset with {len(merged_df)} objects: {merged_path}")
-                
-                results["merged_dataset"] = {
-                    "file": merged_path,
-                    "objects": len(merged_df)
-                }
+            if not all_dataframes:
+                logger.warning("No processed catalogs found for merging")
+                return None
+            
+            # Merge all dataframes
+            merged_df = pd.concat(all_dataframes, ignore_index=True)
+            
+            # Remove duplicates based on object_id and coordinates
+            initial_count = len(merged_df)
+            
+            # First, remove exact duplicates by object_id if available
+            if 'object_id' in merged_df.columns:
+                merged_df = merged_df.drop_duplicates(subset=['object_id'], keep='first')
+                logger.info(f"Removed {initial_count - len(merged_df)} exact duplicates by object_id")
+            
+            # Then remove coordinate-based duplicates (within 1 arcsec)
+            current_count = len(merged_df)
+            merged_df['ra_rounded'] = merged_df['ra'].round(4)  # ~0.36 arcsec precision
+            merged_df['dec_rounded'] = merged_df['dec'].round(4)
+            merged_df = merged_df.drop_duplicates(subset=['ra_rounded', 'dec_rounded'], keep='first')
+            merged_df = merged_df.drop(['ra_rounded', 'dec_rounded'], axis=1)
+            
+            final_count = len(merged_df)
+            coordinate_removed = current_count - final_count
+            total_removed = initial_count - final_count
+            
+            if coordinate_removed > 0:
+                logger.info(f"Removed {coordinate_removed} coordinate-based duplicates")
+            logger.info(f"Total duplicates removed: {total_removed} ({total_removed/initial_count*100:.1f}%)")
+            
+            # Save merged dataset
+            merged_path = self.processed_dir / "merged_catalog.csv"
+            merged_df.to_csv(merged_path, index=False)
+            logger.info(f"Saved merged dataset: {merged_path} ({final_count} objects)")
+            
+            return str(merged_path)
             
         except Exception as e:
             logger.error(f"Error creating merged dataset: {e}")
+            return None
 
 async def main():
-    """Main function for standalone execution."""
+    """Main preprocessing function."""
     preprocessor = AstronomicalDataPreprocessor()
     results = await preprocessor.preprocess_all_catalogs()
     
-    print(f"Preprocessing completed!")
-    print(f"Total objects processed: {results['total_objects']}")
-    for catalog, info in results["catalogs"].items():
-        print(f"  {catalog}: {info['status']} ({info.get('objects', 0)} objects)")
+    print("\n" + "="*50)
+    print("PREPROCESSING RESULTS")
+    print("="*50)
+    print(f"Status: {results['status']}")
+    print(f"Total objects: {results['total_objects']:,}")
+    print(f"Processed at: {results['processed_at']}")
+    
+    print("\nCatalog Results:")
+    for catalog, info in results['catalogs'].items():
+        status = info['status']
+        if status == 'success':
+            print(f"  {catalog}: ✅ {info['objects']:,} objects")
+        else:
+            print(f"  {catalog}: ❌ {status}")
+    
+    if 'merged_dataset' in results:
+        print(f"\nMerged dataset: {results['merged_dataset']}")
 
 if __name__ == "__main__":
     asyncio.run(main()) 
