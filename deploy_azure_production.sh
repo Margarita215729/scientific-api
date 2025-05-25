@@ -11,8 +11,8 @@ echo "🚀 Starting production deployment to Azure Container Instances..."
 RESOURCE_GROUP="scientific-api-production"
 CONTAINER_NAME="scientific-api-prod"
 IMAGE_NAME="scientific-api:production"
-REGISTRY_NAME="scientificapiregistry"
-LOCATION="eastus"
+REGISTRY_NAME="scientificapiregistry2"
+LOCATION="westus2"
 
 # Colors for output
 RED='\033[0;31m'
