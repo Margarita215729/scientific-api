@@ -1,16 +1,45 @@
-# Local development files
+# Data directories (too large for Vercel)
+galaxy_data/
+data/
+*.fits
+*.h5
+*.parquet
+
+# Virtual environment
 .venv/
+venv/
+env/
+
+# Cache and temporary files
 __pycache__/
 *.pyc
-.DS_Store
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
 
-# Version control
+# Development files
 .git/
+.gitignore
+*.log
+*.md
+chapter*.docx
+chapter*.md
+Vercel_project_*.json
+
+# Docker files
+Dockerfile
+docker/
+deploy_azure.sh
+
+# Test files
+test_*.py
+
+# Local development files
+.DS_Store
 
 # Environment files (use Vercel environment variables instead)
 .env
 
 # Other unnecessary files
-chapter*.md
-chapter*.docx
 План согласованный с методическими указаниями* 
