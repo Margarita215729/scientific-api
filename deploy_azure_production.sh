@@ -98,6 +98,7 @@ az container create \
     --ports 8000 \
     --cpu 4 \
     --memory 8 \
+    --os-type Linux \
     --environment-variables \
         ENVIRONMENT=production \
         PYTHONPATH=/app \
