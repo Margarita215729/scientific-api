@@ -20,7 +20,8 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
+deploy_azure.sh
+azure-deployment-updated.json
 # Virtual environments
 venv/
 env/
