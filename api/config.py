@@ -62,7 +62,6 @@ GOOGLE_CLIENT_ID = get_env_var("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = get_env_var("GOOGLE_CLIENT_SECRET")
 GOOGLE_REFRESH_TOKEN = get_env_var("GOOGLE_REFRESH_TOKEN")
 SERPAPI_KEY = get_env_var("SERPAPI_KEY")
-EUCLID_URL = get_env_var("EUCLID_URL")
 
 # Application settings
 DEBUG = get_env_var("DEBUG", "true" if IS_DEVELOPMENT else "false").lower() == "true"
@@ -90,8 +89,5 @@ def get_config() -> Dict[str, Any]:
             "google_client_id": "***redacted***" if GOOGLE_CLIENT_ID else None,
             "google_refresh_token": "***redacted***" if GOOGLE_REFRESH_TOKEN else None,
             "serpapi_key": "***redacted***" if SERPAPI_KEY else None,
-        },
-        "urls": {
-            "euclid_url": EUCLID_URL,
         },
     } 

@@ -10,7 +10,7 @@ import os
 from typing import List, Dict, Any, Optional
 import pandas as pd
 
-from utils.ads_astronomy import (
+from utils.ads_astronomy_real import (
     search_by_coordinates,
     search_by_object,
     search_by_catalog,

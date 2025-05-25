@@ -51,9 +51,8 @@ async def test_azure_connectivity():
         except Exception as e:
             logger.error(f"Failed to connect to Azure API: {str(e)}")
 
-# Run connectivity test on startup
-import asyncio
-asyncio.create_task(test_azure_connectivity())
+# Run connectivity test on startup - removed for Vercel compatibility
+# asyncio.create_task(test_azure_connectivity())
 
 # Create FastAPI app instance
 app = FastAPI(

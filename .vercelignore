@@ -4,12 +4,6 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Large data files
-galaxy_data/
-*.fits
-*.dat
-*.ipynb
-
 # Version control
 .git/
 
@@ -17,9 +11,6 @@ galaxy_data/
 .env
 
 # Other unnecessary files
-.vercelignore.txt
-Анализ неудачного деплоя FastAPI-приложения на Vercel.pdf
 chapter*.md
 chapter*.docx
-MainDataSetsManager.ipynb
 План согласованный с методическими указаниями* 

@@ -12,7 +12,7 @@ import json
 from typing import Optional, List, Dict, Any
 
 # Импортируем функции из модуля astronomy_catalogs
-from utils.astronomy_catalogs import (
+from utils.astronomy_catalogs_real import (
     get_all_catalogs, 
     get_sdss_data, 
     get_euclid_data, 
