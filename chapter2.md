@@ -53,7 +53,7 @@ data = Observations.download_products(obs['obsid'])
 - `DES_Y6_Shear_Catalogs.csv` — данные о сдвигах изображений;
 - `DES_Y6_LSS_Maps.csv` — 3D-карты распределения материи.
 
-#### SDSS DR17 LSS Catalogs
+#### SDSS DR18 LSS Catalogs
 Обновленные каталоги крупномасштабной структуры SDSS:
 - 4 миллиона галактик LOWZ/CMASS (z=0.15–0.8);
 - Веса для коррекции fiber collisions;

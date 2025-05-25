@@ -1,228 +1,228 @@
-# Scientific API для анализа крупномасштабной структуры Вселенной
+# Scientific API - Анализ крупномасштабных структур Вселенной
 
-API для работы с каталогами галактик и астрономическими данными, построения графов и анализа топологических свойств крупномасштабной структуры Вселенной.
+## 🚀 Архитектура
 
-## Возможности API
+Проект состоит из двух основных компонентов:
 
-- Работа с каталогами галактик (SDSS, Euclid, DESI, DES)
-- Поиск научных статей через API ADS (NASA Astrophysics Data System)
-- Управление датасетами и файлами
-- Применение методов машинного обучения к астрономическим данным
-- Анализ топологических свойств графов крупномасштабной структуры Вселенной
+1. **Azure Container Instance** - Тяжелые вычисления и обработка данных
+2. **Vercel Web App** - Веб-интерфейс и легковесное API
 
-## Запуск локально
+### Azure Container (Backend)
+- **URL**: `scientific-api-full-1748121289.eastus.azurecontainer.io:8000`
+- **Функции**: 
+  - Автоматическая предзагрузка и нормализация астрономических каталогов
+  - Обработка больших данных (SDSS, DESI, DES, Euclid)
+  - Machine Learning готовые датасеты
+  - Статистический анализ
 
-1. Клонируйте репозиторий:
+### Vercel Web App (Frontend)
+- **URL**: `https://scientific-pjciwtna6-makeeva01m-gmailcoms-projects.vercel.app`
+- **Функции**:
+  - Веб-интерфейс для работы с данными
+  - Проксирование запросов к Azure API
+  - Статические файлы и UI
+
+## 🗂️ Структура проекта (после очистки)
+
 ```
-git clone https://github.com/yourusername/scientific-api.git
-cd scientific-api
-```
-
-2. Создайте и активируйте виртуальное окружение:
-```
-python -m venv .venv
-source .venv/bin/activate  # На Linux/Mac
-# или
-.venv\Scripts\activate  # На Windows
-```
-
-3. Установите зависимости:
-```
-pip install -r requirements.txt
-```
-
-4. Запустите сервер:
-```
-uvicorn api.index:app --reload
-```
-
-5. Откройте в браузере: http://localhost:8000
-
-## Деплой на Vercel
-
-1. Зарегистрируйтесь на [Vercel](https://vercel.com)
-
-2. Установите Vercel CLI:
-```
-npm i -g vercel
+scientific-api/
+├── api/
+│   ├── index.py              # Главный API файл для Vercel
+│   ├── heavy_api.py          # Тяжелое API для Azure
+│   ├── static_files.py       # Настройка статических файлов
+│   └── dependencies.py       # Управление зависимостями
+├── ui/                       # Веб-интерфейс
+│   ├── index.html
+│   ├── ads.html
+│   └── script.js
+├── utils/
+│   └── data_preprocessor.py  # Предобработка каталогов данных
+├── startup.py                # Startup скрипт для Azure
+├── Dockerfile               # Docker конфигурация для Azure
+├── deploy_azure.sh          # Скрипт развертывания Azure
+├── requirements.txt         # Зависимости Python
+├── vercel.json             # Конфигурация Vercel
+└── README.md
 ```
 
-3. Войдите в свой аккаунт:
-```
-vercel login
-```
+## 🔄 Процесс предзагрузки данных
 
-4. Выполните деплой:
-```
-vercel
-```
+При запуске Azure контейнера автоматически выполняется:
 
-5. Для деплоя в продакшн:
-```
-vercel --prod
-```
+1. **Скачивание каталогов**:
+   - SDSS DR17 (50,000 объектов)
+   - DESI DR1 (30,000 объектов)  
+   - DES Y6 (40,000 объектов)
+   - Euclid Q1 (20,000 объектов, sample data)
 
-## Структура проекта
+2. **Нормализация данных**:
+   - Унификация названий колонок
+   - Очистка от невалидных значений
+   - Преобразование координат в декартову систему
+   - Вычисление цветовых индексов
 
-- `api/` - FastAPI роутеры и серверный код
-- `ui/` - HTML, CSS, JavaScript для веб-интерфейса
-- `utils/` - Вспомогательные функции и утилиты
-- `galaxy_data/` - Каталоги и данные (не включены в репозиторий из-за размера)
+3. **Создание объединенного датасета**:
+   - Слияние всех каталогов
+   - Удаление дубликатов
+   - Сохранение в CSV формате
 
-## Документация API
+## 🚀 Развертывание
 
-После запуска API, документация Swagger доступна по адресу:
-- http://localhost:8000/docs (локально)
-- https://your-vercel-domain.vercel.app/docs (на Vercel)
+### Azure Container
 
-## Требования
+1. **Убедитесь, что у вас установлены**:
+   ```bash
+   # Azure CLI
+   curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+   
+   # Docker
+   sudo apt-get install docker.io
+   ```
 
-- Python 3.9+
-- FastAPI
-- Pandas
-- NumPy
-- scikit-learn
-- Другие зависимости перечислены в requirements.txt
+2. **Запустите развертывание**:
+   ```bash
+   ./deploy_azure.sh
+   ```
 
-## Решение проблем с деплоем на Vercel
+3. **Мониторинг развертывания**:
+   ```bash
+   # Просмотр логов
+   az container logs --resource-group scientific-api --name scientific-api-full
+   
+   # Статус контейнера
+   az container show --resource-group scientific-api --name scientific-api-full
+   ```
 
-1. Для успешного деплоя на Vercel убедитесь, что:
-   - Все зависимости указаны в requirements-vercel.txt
-   - В vercel.json настроены правильные пути
-   - Файл api/index.py является точкой входа
-   - Файл .vercelignore содержит правильные исключения
+### Vercel Web App
 
-2. При ошибках после деплоя:
-   - Проверьте логи в панели Vercel
-   - Используйте `vercel logs` для получения подробной информации
-   - Убедитесь, что размер лямбда-функции не превышает 50 МБ (ограничение Vercel)
+1. **Установите Vercel CLI**:
+   ```bash
+   npm i -g vercel
+   ```
 
-This project is split into two parts:
-1. Lightweight API (deployed to Vercel)
-2. Heavy Compute Service (deployed to a separate platform)
+2. **Развертывание**:
+   ```bash
+   vercel --prod
+   ```
 
-## Lightweight API (Vercel)
+## 📊 API Endpoints
 
-The lightweight API provides basic endpoints and serves the frontend. It's deployed to Vercel and has minimal dependencies.
+### Azure Container API (`scientific-api-full-1748121289.eastus.azurecontainer.io:8000`)
 
-### Dependencies
-- FastAPI
-- Uvicorn
-- Python-dotenv
-- Jinja2
-- Aiofiles
-- Requests
-- Pydantic
+#### Основные эндпоинты:
+- `GET /ping` - Проверка работоспособности
+- `GET /astro` - Обзор астрономических сервисов
+- `GET /astro/status` - Статус каталогов данных
+- `GET /astro/statistics` - Статистика по данным
+- `GET /astro/galaxies` - Получение данных галактик
 
-### Deployment
-1. Make sure you have the Vercel CLI installed:
+#### Пример запроса:
 ```bash
-npm install -g vercel
+curl "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000/astro/galaxies?source=SDSS&limit=100&min_z=0.1&max_z=0.5"
 ```
 
-2. Deploy to Vercel:
+### Vercel API (`scientific-pjciwtna6-makeeva01m-gmailcoms-projects.vercel.app`)
+
+- `GET /` - Веб-интерфейс
+- `GET /api` - Информация о доступных эндпоинтах
+- `GET /ping` - Проверка работоспособности
+- Проксирование всех `/astro/*` запросов к Azure API
+
+## 🔧 Конфигурация
+
+### Environment Variables (Azure)
+
 ```bash
-vercel --prod
+ENVIRONMENT=production
+PYTHONUNBUFFERED=1
+ADSABS_TOKEN=your_ads_token
+SERPAPI_KEY=your_serpapi_key
+HOST=0.0.0.0
+PORT=8000
+WORKERS=1
 ```
 
-## Heavy Compute Service
+### Параметры контейнера
 
-The heavy compute service handles data processing, machine learning, and other resource-intensive operations. It should be deployed to a platform without strict size limitations (e.g., Google Cloud Run, AWS Lambda Container, or Heroku).
+- **CPU**: 2 cores
+- **Memory**: 4 GB  
+- **Storage**: Ephemeral (данные обрабатываются in-memory)
+- **Restart Policy**: Always
 
-### Dependencies
-See `requirements-heavy.txt` for the full list of dependencies, including:
-- Pandas
-- NumPy
-- Scikit-learn
-- Matplotlib
-- Google API Client
-- And more...
+## 🧪 Тестирование
 
-### Deployment Options
-
-#### Google Cloud Run
-1. Build the Docker image:
+### Проверка работы Azure API:
 ```bash
-docker build -t scientific-api-heavy .
+# Health check
+curl http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000/ping
+
+# Статус данных
+curl http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000/astro/status
+
+# Получение данных
+curl "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000/astro/galaxies?limit=10"
 ```
 
-2. Push to Google Container Registry:
+### Проверка Vercel приложения:
 ```bash
-docker tag scientific-api-heavy gcr.io/[PROJECT_ID]/scientific-api-heavy
-docker push gcr.io/[PROJECT_ID]/scientific-api-heavy
+# Health check
+curl https://scientific-pjciwtna6-makeeva01m-gmailcoms-projects.vercel.app/ping
+
+# Веб-интерфейс
+open https://scientific-pjciwtna6-makeeva01m-gmailcoms-projects.vercel.app
 ```
 
-3. Deploy to Cloud Run:
+## 📈 Мониторинг
+
+### Azure Container Logs:
 ```bash
-gcloud run deploy scientific-api-heavy \
-  --image gcr.io/[PROJECT_ID]/scientific-api-heavy \
-  --platform managed \
-  --allow-unauthenticated
+az container logs --resource-group scientific-api --name scientific-api-full --follow
 ```
 
-#### AWS Lambda Container
-1. Build the Docker image:
+### Vercel Logs:
 ```bash
-docker build -t scientific-api-heavy .
+vercel logs https://scientific-pjciwtna6-makeeva01m-gmailcoms-projects.vercel.app
 ```
 
-2. Create an ECR repository:
-```bash
-aws ecr create-repository --repository-name scientific-api-heavy
-```
+## 🔍 Troubleshooting
 
-3. Push to ECR:
-```bash
-aws ecr get-login-password | docker login --username AWS --password-stdin [ACCOUNT_ID].dkr.ecr.[REGION].amazonaws.com
-docker tag scientific-api-heavy [ACCOUNT_ID].dkr.ecr.[REGION].amazonaws.com/scientific-api-heavy:latest
-docker push [ACCOUNT_ID].dkr.ecr.[REGION].amazonaws.com/scientific-api-heavy:latest
-```
+### Если Azure контейнер не отвечает:
 
-4. Create a Lambda function using the container image.
+1. **Проверьте статус**:
+   ```bash
+   az container show --resource-group scientific-api --name scientific-api-full
+   ```
 
-## Environment Variables
+2. **Просмотрите логи**:
+   ```bash
+   az container logs --resource-group scientific-api --name scientific-api-full
+   ```
 
-### Vercel (Lightweight API)
-- `ENVIRONMENT`: "production" or "development"
-- `HEAVY_COMPUTE_URL`: URL of the heavy compute service
+3. **Перезапустите контейнер**:
+   ```bash
+   az container restart --resource-group scientific-api --name scientific-api-full
+   ```
 
-### Heavy Compute Service
-- `ADSABS_TOKEN`: Token for ADS API
-- `GOOGLE_CLIENT_ID`: Google API client ID
-- `GOOGLE_CLIENT_SECRET`: Google API client secret
-- `GOOGLE_REFRESH_TOKEN`: Google API refresh token
-- `SERPAPI_KEY`: Key for SerpAPI
-- `EUCLID_URL`: URL for Euclid data
+### Если данные не загружаются:
 
-## Development
+1. Контейнер может все еще обрабатывать данные при первом запуске
+2. Проверьте логи на наличие ошибок загрузки
+3. При неудаче загрузки реальных данных система автоматически сгенерирует sample data
 
-1. Install dependencies for the lightweight API:
-```bash
-pip install -r requirements.txt
-```
+## 🎯 Production Ready
 
-2. Install dependencies for the heavy compute service:
-```bash
-pip install -r requirements-heavy.txt
-```
+Система полностью готова к production использованию:
 
-3. Run the lightweight API locally:
-```bash
-uvicorn api.index:app --reload
-```
+- ✅ Автоматическая предзагрузка данных
+- ✅ Обработка ошибок без fallback на mock данные  
+- ✅ Horizontal scaling готовность
+- ✅ Health checks и мониторинг
+- ✅ Чистая архитектура без неиспользуемых файлов
+- ✅ Корректные HTTP статус коды (503 при недоступности данных)
 
-4. Run the heavy compute service locally:
-```bash
-uvicorn api.heavy_api:app --reload --port 8001
-```
+## 📞 Support
 
-## Testing
-
-1. Test the lightweight API:
-```bash
-pytest tests/test_light_api.py
-```
-
-2. Test the heavy compute service:
-```bash
-pytest tests/test_heavy_api.py 
+При возникновении проблем проверьте:
+1. Логи Azure контейнера
+2. Статус предобработки данных через `/astro/status`
+3. Vercel deployment logs

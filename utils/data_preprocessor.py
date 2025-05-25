@@ -30,7 +30,7 @@ class AstronomicalDataPreprocessor:
         self.ensure_directories()
         self.catalogs = {
             "SDSS": {
-                "url": "https://dr17.sdss.org/sas/dr17/eboss/spectro/redux/v5_13_2/specObj-dr17.fits",
+                "url": "https://dr18.sdss.org/sas/dr18/spectro/boss/redux/v6_0_4/spAll-v6_0_4.fits",
                 "columns": ["RA", "DEC", "Z", "Z_ERR", "MODELFLUX_G", "MODELFLUX_R", "MODELFLUX_I"],
                 "processed_name": "sdss_processed.csv",
                 "sample_size": 50000
@@ -48,8 +48,7 @@ class AstronomicalDataPreprocessor:
                 "sample_size": 40000
             },
             "Euclid": {
-                # Placeholder - Euclid data not yet publicly available
-                "url": None,
+                "url": "https://archives.esac.esa.int/euclid/data/q1/EUC_MER_SOC-CAT-VIS_20241101T000000.0_20241130T235959.9_01.00.fits",
                 "columns": ["RA", "DEC", "PHOTO_Z", "PHOTO_Z_ERR", "MAG_VIS", "MAG_Y", "MAG_J"],
                 "processed_name": "euclid_processed.csv",
                 "sample_size": 20000
@@ -104,11 +103,11 @@ class AstronomicalDataPreprocessor:
                     data = hdul[1].data  # Usually data is in extension 1
                     df = pd.DataFrame(data)
             except ImportError:
-                logger.warning("astropy not available, generating sample data")
-                df = self.generate_sample_data(catalog_name, catalog_info)
+                logger.error("astropy not available - cannot process FITS files")
+                return None
             except Exception as e:
-                logger.warning(f"Error reading FITS file: {e}, generating sample data")
-                df = self.generate_sample_data(catalog_name, catalog_info)
+                logger.error(f"Error reading FITS file: {e}")
+                return None
             
             # Normalize column names
             df = self.normalize_columns(df, catalog_name)
@@ -132,57 +131,7 @@ class AstronomicalDataPreprocessor:
             
         except Exception as e:
             logger.error(f"Error processing {catalog_name}: {e}")
-            # Generate sample data as fallback
-            df = self.generate_sample_data(catalog_name, catalog_info)
-            output_path = os.path.join(PROCESSED_DIR, catalog_info["processed_name"])
-            df.to_csv(output_path, index=False)
-            logger.info(f"Generated sample data for {catalog_name}")
-            return output_path
-    
-    def generate_sample_data(self, catalog_name: str, catalog_info: Dict) -> pd.DataFrame:
-        """Generate realistic sample data for a catalog."""
-        n_samples = catalog_info["sample_size"]
-        
-        np.random.seed(hash(catalog_name) % 2**32)
-        
-        # Generate coordinates
-        ra = np.random.uniform(0, 360, n_samples)
-        dec = np.random.uniform(-90, 90, n_samples)
-        
-        # Generate redshifts based on catalog type
-        if catalog_name == "SDSS":
-            z = np.random.exponential(0.3, n_samples)
-            z = np.clip(z, 0.001, 2.0)
-        elif catalog_name == "DESI":
-            z = np.random.exponential(0.8, n_samples) 
-            z = np.clip(z, 0.1, 3.5)
-        elif catalog_name == "DES":
-            z = np.random.exponential(0.5, n_samples)
-            z = np.clip(z, 0.01, 1.5)
-        else:  # Euclid
-            z = np.random.exponential(1.2, n_samples)
-            z = np.clip(z, 0.2, 4.0)
-            
-        z_err = z * 0.1 * np.random.uniform(0.5, 1.5, n_samples)
-        
-        # Generate magnitudes
-        mag_g = np.random.normal(22, 2, n_samples)
-        mag_r = mag_g - np.random.normal(0.5, 0.3, n_samples) 
-        mag_i = mag_r - np.random.normal(0.3, 0.2, n_samples)
-        
-        # Create DataFrame
-        df = pd.DataFrame({
-            "RA": ra,
-            "DEC": dec,
-            "redshift": z,
-            "redshift_err": z_err,
-            "magnitude_g": mag_g,
-            "magnitude_r": mag_r,
-            "magnitude_i": mag_i,
-            "source": catalog_name
-        })
-        
-        return df
+            return None
     
     def normalize_columns(self, df: pd.DataFrame, catalog_name: str) -> pd.DataFrame:
         """Normalize column names to standard format."""
@@ -296,37 +245,34 @@ class AstronomicalDataPreprocessor:
                 if catalog_info["url"]:
                     file_path = await self.download_catalog(catalog_name, catalog_info)
                     if not file_path:
-                        # Generate sample data if download failed
-                        df = self.generate_sample_data(catalog_name, catalog_info)
-                        output_path = os.path.join(PROCESSED_DIR, catalog_info["processed_name"])
-                        df.to_csv(output_path, index=False)
-                        file_path = output_path
+                        # No fallback - real data only
                         results["catalogs"][catalog_name] = {
-                            "status": "sample_generated",
-                            "objects": len(df),
-                            "file": output_path
+                            "status": "failed",
+                            "error": "Failed to download real data"
                         }
-                    else:
-                        # Process downloaded data
-                        output_path = self.process_catalog(catalog_name, catalog_info, file_path)
+                        continue
+                    
+                    # Process downloaded data
+                    output_path = self.process_catalog(catalog_name, catalog_info, file_path)
+                    if output_path and os.path.exists(output_path):
                         df = pd.read_csv(output_path)
                         results["catalogs"][catalog_name] = {
                             "status": "processed",
                             "objects": len(df),
                             "file": output_path
                         }
+                        results["total_objects"] += len(df)
+                    else:
+                        results["catalogs"][catalog_name] = {
+                            "status": "failed",
+                            "error": "Failed to process real data"
+                        }
                 else:
-                    # Generate sample data for catalogs without URLs (like Euclid)
-                    df = self.generate_sample_data(catalog_name, catalog_info)
-                    output_path = os.path.join(PROCESSED_DIR, catalog_info["processed_name"])
-                    df.to_csv(output_path, index=False)
+                    # No URL - cannot process
                     results["catalogs"][catalog_name] = {
-                        "status": "sample_generated",
-                        "objects": len(df),
-                        "file": output_path
+                        "status": "failed",
+                        "error": "No URL available for real data"
                     }
-                
-                results["total_objects"] += results["catalogs"][catalog_name]["objects"]
                 
             except Exception as e:
                 logger.error(f"Error processing {catalog_name}: {e}")
@@ -335,8 +281,16 @@ class AstronomicalDataPreprocessor:
                     "error": str(e)
                 }
         
-        # Create merged dataset
-        self.create_merged_dataset(results)
+        # Create merged dataset only if we have successful catalogs
+        successful_catalogs = [name for name, info in results["catalogs"].items() 
+                             if info["status"] == "processed"]
+        
+        if successful_catalogs:
+            self.create_merged_dataset(results)
+        else:
+            logger.error("No catalogs were successfully processed")
+            results["status"] = "failed"
+            results["error"] = "No real astronomical data could be processed"
         
         # Save preprocessing info
         info_path = os.path.join(PROCESSED_DIR, "preprocessing_info.json")
