@@ -313,10 +313,60 @@ async def search_ads_advanced(search_params: Dict) -> Dict[str, Any]:
             max_results=search_params.get("max_results", 20)
         )
 
+# Wrapper functions for backward compatibility
+async def search_by_coordinates(ra: float, dec: float, radius: float = 0.1, max_results: int = 20) -> List[Dict]:
+    """Search ADS for publications related to specific coordinates."""
+    result = await ads_client.search_by_coordinates(ra, dec, radius, max_results)
+    return result.get("publications", [])
+
 async def search_by_object(object_name: str, max_results: int = 20) -> List[Dict]:
-    """Legacy function for backward compatibility."""
+    """Search ADS for publications about a specific astronomical object."""
     result = await ads_client.search_by_object(object_name, max_results)
     return result.get("publications", [])
+
+async def search_by_catalog(catalog_name: str, facet: bool = True, max_results: int = 50) -> Dict[str, Any]:
+    """Search ADS for publications related to a specific catalog."""
+    result = await ads_client.search_by_catalog(catalog_name, max_results)
+    return result
+
+async def get_citations_for_paper(bibcode: str) -> List[Dict]:
+    """Get citations for a specific paper."""
+    query = f"citations(bibcode:{bibcode})"
+    result = await ads_client.search_publications(query, max_results=100)
+    return result.get("publications", [])
+
+async def get_references_for_paper(bibcode: str) -> List[Dict]:
+    """Get references for a specific paper."""
+    query = f"references(bibcode:{bibcode})"
+    result = await ads_client.search_publications(query, max_results=100)
+    return result.get("publications", [])
+
+async def search_large_scale_structure(additional_keywords: Optional[List[str]] = None, 
+                                      start_year: int = 2010) -> Dict[str, Any]:
+    """Search for publications on large-scale structure."""
+    keywords_str = ",".join(additional_keywords) if additional_keywords else None
+    result = await ads_client.search_large_scale_structure(start_year, keywords_str)
+    return result
+
+def get_bibtex(bibcodes: List[str]) -> str:
+    """Get BibTeX format for given bibcodes."""
+    # Mock implementation for now
+    bibtex_entries = []
+    for bibcode in bibcodes:
+        entry = f"""@ARTICLE{{{bibcode.replace("&", "").replace(".", "")},
+       author = {{Mock Author}},
+        title = {{Mock Title for {bibcode}}},
+      journal = {{Mock Journal}},
+         year = 2023,
+       volume = 1,
+        pages = {{1-10}},
+          doi = {{10.1000/mock}},
+       adsurl = {{https://ui.adsabs.harvard.edu/abs/{bibcode}}},
+      adsnote = {{Provided by the SAO/NASA Astrophysics Data System}}
+}}"""
+        bibtex_entries.append(entry)
+    
+    return "\n\n".join(bibtex_entries)
 
 # Import numpy for mock data generation
 try:

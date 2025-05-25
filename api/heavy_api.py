@@ -12,7 +12,12 @@ from typing import Dict, Any, List, Optional
 import asyncio
 from datetime import datetime
 import json
-import httpx
+try:
+    import httpx
+    HTTPX_AVAILABLE = True
+except ImportError:
+    httpx = None
+    HTTPX_AVAILABLE = False
 
 # Try to import heavy compute libraries
 try:

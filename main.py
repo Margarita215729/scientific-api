@@ -14,15 +14,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import API routers
-try:
-    from api.astro_catalog_api import router as astro_router
-    from api.ads_api import router as ads_router
-    from api.heavy_api import router as heavy_router
-except ImportError as e:
-    print(f"Warning: Could not import some API modules: {e}")
-    astro_router = None
-    ads_router = None
-    heavy_router = None
+from api.astro_catalog_api import router as astro_router
+from api.ads_api import router as ads_router
+from api.heavy_api import router as heavy_router
 
 app = FastAPI(
     title="Scientific API - Astronomical Data",
@@ -43,12 +37,9 @@ app.add_middleware(
 )
 
 # Include API routers
-if astro_router:
-    app.include_router(astro_router, prefix="/api/astro", tags=["Astronomical Catalogs"])
-if ads_router:
-    app.include_router(ads_router, prefix="/api/ads", tags=["Scientific Literature"])
-if heavy_router:
-    app.include_router(heavy_router, prefix="/api", tags=["Heavy Compute"])
+app.include_router(astro_router, prefix="/api/astro", tags=["Astronomical Catalogs"])
+app.include_router(ads_router, prefix="/api/ads", tags=["Scientific Literature"])
+app.include_router(heavy_router, prefix="/api", tags=["Heavy Compute"])
 
 # Health check endpoint
 @app.get("/api/health")

@@ -13,15 +13,10 @@ from typing import Optional, List, Dict, Any
 
 # Импортируем функции из модуля astronomy_catalogs
 from utils.astronomy_catalogs_real import (
-    get_all_catalogs, 
-    get_sdss_data, 
-    get_euclid_data, 
-    get_desi_data, 
-    get_des_data,
-    get_euclid_by_regions,
-    merge_all_data,
-    convert_to_cartesian,
-    fetch_galaxy_subset,
+    AstronomicalDataProcessor,
+    get_catalog_info,
+    get_comprehensive_statistics,
+    fetch_filtered_galaxies,
     DATA_DIR, 
     OUTPUT_DIR
 )
@@ -31,37 +26,38 @@ router = APIRouter()
 # Фоновая задача для загрузки всех каталогов
 running_jobs = {}
 
-def background_download_all_catalogs(job_id: str):
+async def background_download_all_catalogs(job_id: str):
     """Фоновая задача для загрузки всех каталогов."""
     try:
         running_jobs[job_id] = {"status": "running", "progress": 0}
         
-        # Последовательно загружаем каталоги
+        # Создаем процессор данных
+        processor = AstronomicalDataProcessor()
         catalogs = []
         
         try:
-            sdss_path = get_sdss_data()
+            sdss_path = await processor.download_sdss_data()
             catalogs.append({"name": "SDSS DR17", "path": sdss_path, "status": "success"})
             running_jobs[job_id]["progress"] = 25
         except Exception as e:
             catalogs.append({"name": "SDSS DR17", "status": "error", "error": str(e)})
         
         try:
-            euclid_path = get_euclid_data()
+            euclid_path = await processor.download_euclid_data()
             catalogs.append({"name": "Euclid Q1", "path": euclid_path, "status": "success"})
             running_jobs[job_id]["progress"] = 50
         except Exception as e:
             catalogs.append({"name": "Euclid Q1", "status": "error", "error": str(e)})
         
         try:
-            desi_path = get_desi_data()
+            desi_path = await processor.download_desi_data()
             catalogs.append({"name": "DESI DR1", "path": desi_path, "status": "success"})
             running_jobs[job_id]["progress"] = 75
         except Exception as e:
             catalogs.append({"name": "DESI DR1", "status": "error", "error": str(e)})
         
         try:
-            des_path = get_des_data()
+            des_path = await processor.download_des_data()
             catalogs.append({"name": "DES Y6", "path": des_path, "status": "success"})
             running_jobs[job_id]["progress"] = 90
         except Exception as e:
@@ -69,7 +65,8 @@ def background_download_all_catalogs(job_id: str):
         
         # Объединяем данные в единый набор
         try:
-            merged_path = merge_all_data()
+            catalog_paths = [cat["path"] for cat in catalogs if cat["status"] == "success"]
+            merged_path = await processor.merge_catalogs(catalog_paths)
             catalogs.append({"name": "Merged Dataset", "path": merged_path, "status": "success"})
         except Exception as e:
             catalogs.append({"name": "Merged Dataset", "status": "error", "error": str(e)})
@@ -98,8 +95,11 @@ async def start_download(background_tasks: BackgroundTasks):
     Возвращает ID задачи, по которому можно отслеживать прогресс загрузки.
     """
     import uuid
+    import asyncio
     job_id = str(uuid.uuid4())
-    background_tasks.add_task(background_download_all_catalogs, job_id)
+    
+    # Запускаем асинхронную задачу
+    asyncio.create_task(background_download_all_catalogs(job_id))
     
     return {
         "job_id": job_id,
@@ -125,46 +125,7 @@ async def check_catalogs_status():
     if not os.path.exists(OUTPUT_DIR):
         return {"status": "empty", "message": "Каталоги не загружены"}
     
-    catalogs = []
-    catalog_files = {
-        "sdss.csv": {"name": "SDSS DR17", "description": "Spectroscopic catalog"},
-        "euclid.csv": {"name": "Euclid Q1", "description": "MER Final catalog"},
-        "desi.csv": {"name": "DESI DR1", "description": "ELG clustering catalog"},
-        "des.csv": {"name": "DES Y6", "description": "Gold catalog"},
-        "merged_galaxies.csv": {"name": "Merged Dataset", "description": "Объединенный набор данных"}
-    }
-    
-    for filename, info in catalog_files.items():
-        filepath = os.path.join(OUTPUT_DIR, filename)
-        if os.path.exists(filepath):
-            size_mb = os.path.getsize(filepath) / (1024 * 1024)
-            
-            # Подсчет количества строк (чтение только первой строки для определения формата)
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    header = f.readline().strip()
-                    
-                # Быстрый подсчет строк
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    row_count = sum(1 for _ in f) - 1  # Вычитаем заголовок
-            except Exception as e:
-                row_count = "Ошибка подсчета"
-                
-            catalogs.append({
-                "name": info["name"],
-                "description": info["description"],
-                "filename": filename,
-                "size_mb": round(size_mb, 2),
-                "rows": row_count,
-                "available": True
-            })
-        else:
-            catalogs.append({
-                "name": info["name"],
-                "description": info["description"],
-                "available": False
-            })
-    
+    catalogs = await get_catalog_info()
     return {
         "status": "ok",
         "catalogs": catalogs,
@@ -193,65 +154,38 @@ async def get_galaxies(
     - **min_dec/max_dec**: Фильтрация по склонению
     - **format**: Формат ответа (json или csv)
     """
-    merged_path = os.path.join(OUTPUT_DIR, "merged_galaxies.csv")
-    
-    # Проверяем, существует ли объединенный файл
-    if not os.path.exists(merged_path):
-        try:
-            # Пробуем создать объединенный файл, если его нет
-            _ = merge_all_data()
-        except Exception as e:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Данные галактик не найдены. Сначала запустите загрузку каталогов через /astro/download: {str(e)}"
-            )
+    # Подготавливаем фильтры
+    filters = {
+        "source": source,
+        "min_z": min_z,
+        "max_z": max_z,
+        "min_ra": min_ra,
+        "max_ra": max_ra,
+        "min_dec": min_dec,
+        "max_dec": max_dec,
+        "limit": limit
+    }
     
     try:
-        # Читаем данные из файла
-        df = pd.read_csv(merged_path)
-        
-        # Применяем фильтры
-        if source:
-            df = df[df["source"] == source]
-        
-        if min_z is not None:
-            df = df[df["redshift"] >= min_z]
-        
-        if max_z is not None:
-            df = df[df["redshift"] <= max_z]
-        
-        if min_ra is not None:
-            df = df[df["RA"] >= min_ra]
-        
-        if max_ra is not None:
-            df = df[df["RA"] <= max_ra]
-        
-        if min_dec is not None:
-            df = df[df["DEC"] >= min_dec]
-        
-        if max_dec is not None:
-            df = df[df["DEC"] <= max_dec]
-        
-        # Ограничиваем количество строк
-        if limit is not None and len(df) > limit:
-            df = df.sample(limit) if limit < len(df) else df
+        # Получаем отфильтрованные данные
+        result = await fetch_filtered_galaxies(filters, include_ml_features=False)
+        galaxies = result["galaxies"]
         
         # Возвращаем в запрошенном формате
         if format.lower() == "csv":
+            df = pd.DataFrame(galaxies)
             csv_data = df.to_csv(index=False)
             return JSONResponse(
-                content={"data": csv_data, "rows": len(df)},
+                content={"data": csv_data, "rows": len(galaxies)},
                 headers={"Content-Disposition": "attachment; filename=galaxies.csv"}
             )
         
         # JSON формат по умолчанию
-        # Обрабатываем NaN значения
-        df = df.replace({np.nan: None})
-        
         return {
-            "count": len(df),
+            "count": len(galaxies),
             "source": source or "all",
-            "galaxies": df.to_dict(orient="records")
+            "galaxies": galaxies,
+            "processing_time": result.get("processing_time", 0)
         }
     
     except Exception as e:
@@ -267,91 +201,9 @@ async def get_catalog_statistics(
     - **catalogs**: Список каталогов для анализа (sdss, euclid, desi, des, all)
     Если не указан, используются все доступные каталоги.
     """
-    merged_path = os.path.join(OUTPUT_DIR, "merged_galaxies.csv")
-    
-    # Проверяем, существует ли объединенный файл
-    if not os.path.exists(merged_path):
-        raise HTTPException(
-            status_code=404, 
-            detail="Данные галактик не найдены. Сначала запустите загрузку каталогов через /astro/download"
-        )
-    
     try:
-        # Читаем данные из файла
-        df = pd.read_csv(merged_path)
-        
-        # Фильтруем по указанным каталогам
-        if catalogs and "all" not in catalogs:
-            valid_sources = []
-            map_names = {"sdss": "SDSS", "euclid": "Euclid", "desi": "DESI", "des": "DES"}
-            for c in catalogs:
-                if c.lower() in map_names:
-                    valid_sources.append(map_names[c.lower()])
-            
-            if valid_sources:
-                df = df[df["source"].isin(valid_sources)]
-        
-        if len(df) == 0:
-            return {"message": "Нет данных, соответствующих запросу"}
-        
-        # Общая статистика
-        total_galaxies = len(df)
-        sources_count = df["source"].value_counts().to_dict()
-        
-        # Статистика по z (красному смещению)
-        z_stats = {
-            "min": float(df["redshift"].min()) if not pd.isna(df["redshift"].min()) else None,
-            "max": float(df["redshift"].max()) if not pd.isna(df["redshift"].max()) else None,
-            "mean": float(df["redshift"].mean()) if not pd.isna(df["redshift"].mean()) else None,
-            "median": float(df["redshift"].median()) if not pd.isna(df["redshift"].median()) else None,
-            "available_percent": float((df["redshift"].notna().sum() / total_galaxies) * 100)
-        }
-        
-        # Статистика по координатам
-        coord_stats = {
-            "ra": {
-                "min": float(df["RA"].min()),
-                "max": float(df["RA"].max()),
-                "coverage_degrees": float(df["RA"].max() - df["RA"].min())
-            },
-            "dec": {
-                "min": float(df["DEC"].min()),
-                "max": float(df["DEC"].max()),
-                "coverage_degrees": float(df["DEC"].max() - df["DEC"].min())
-            }
-        }
-        
-        # Статистика по 3D-координатам
-        xyz_stats = {
-            "x": {
-                "min": float(df["X"].min()) if not pd.isna(df["X"].min()) else None,
-                "max": float(df["X"].max()) if not pd.isna(df["X"].max()) else None,
-                "range_mpc": float(df["X"].max() - df["X"].min()) if not pd.isna(df["X"].min()) else None
-            },
-            "y": {
-                "min": float(df["Y"].min()) if not pd.isna(df["Y"].min()) else None,
-                "max": float(df["Y"].max()) if not pd.isna(df["Y"].max()) else None,
-                "range_mpc": float(df["Y"].max() - df["Y"].min()) if not pd.isna(df["Y"].min()) else None
-            },
-            "z": {
-                "min": float(df["Z"].min()) if not pd.isna(df["Z"].min()) else None,
-                "max": float(df["Z"].max()) if not pd.isna(df["Z"].max()) else None,
-                "range_mpc": float(df["Z"].max() - df["Z"].min()) if not pd.isna(df["Z"].min()) else None
-            },
-            "distance_mpc": {
-                "min": float(df["distance_mpc"].min()) if not pd.isna(df["distance_mpc"].min()) else None,
-                "max": float(df["distance_mpc"].max()) if not pd.isna(df["distance_mpc"].max()) else None,
-                "mean": float(df["distance_mpc"].mean()) if not pd.isna(df["distance_mpc"].mean()) else None
-            }
-        }
-        
-        return {
-            "total_galaxies": total_galaxies,
-            "sources": sources_count,
-            "redshift": z_stats,
-            "celestial_coordinates": coord_stats,
-            "cartesian_coordinates": xyz_stats
-        }
-    
+        # Получаем комплексную статистику
+        stats = await get_comprehensive_statistics()
+        return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении статистики: {str(e)}") 

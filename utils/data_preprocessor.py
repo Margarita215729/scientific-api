@@ -8,7 +8,12 @@ import pandas as pd
 import numpy as np
 import logging
 import asyncio
-import aiohttp
+try:
+    import aiohttp
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    aiohttp = None
+    AIOHTTP_AVAILABLE = False
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
@@ -129,22 +134,36 @@ class AstronomicalDataPreprocessor:
         logger.info(f"Downloading {catalog_name} from {url}")
         
         try:
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        with open(file_path, 'wb') as f:
-                            async for chunk in response.content.iter_chunked(8192):
-                                f.write(chunk)
-                        logger.info(f"Downloaded {catalog_name} to {file_path}")
-                        return str(file_path)
-                    else:
-                        logger.error(f"Failed to download {catalog_name}: HTTP {response.status}")
-                        return None
+            if AIOHTTP_AVAILABLE:
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                connector = aiohttp.TCPConnector(ssl=ssl_context)
+                async with aiohttp.ClientSession(connector=connector) as session:
+                    async with session.get(url) as response:
+                        if response.status == 200:
+                            with open(file_path, 'wb') as f:
+                                async for chunk in response.content.iter_chunked(8192):
+                                    f.write(chunk)
+                            logger.info(f"Downloaded {catalog_name} to {file_path}")
+                            return str(file_path)
+                        else:
+                            logger.error(f"Failed to download {catalog_name}: HTTP {response.status}")
+                            return None
+            else:
+                # Fallback to requests for synchronous download
+                import requests
+                response = requests.get(url, stream=True, timeout=300)
+                if response.status_code == 200:
+                    with open(file_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    logger.info(f"Downloaded {catalog_name} to {file_path}")
+                    return str(file_path)
+                else:
+                    logger.error(f"Failed to download {catalog_name}: HTTP {response.status_code}")
+                    return None
         except Exception as e:
             logger.error(f"Error downloading {catalog_name}: {e}")
             return None
@@ -178,8 +197,12 @@ class AstronomicalDataPreprocessor:
                             return None
                 else:
                     # Handle FITS files
-                    from astropy.io import fits
-                    from astropy.table import Table
+                    try:
+                        from astropy.io import fits
+                        from astropy.table import Table
+                    except ImportError:
+                        logger.error("astropy not available - cannot process FITS files")
+                        return None
                     with fits.open(file_path) as hdul:
                         # Try different extensions
                         for i, hdu in enumerate(hdul):
