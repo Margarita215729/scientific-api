@@ -72,9 +72,9 @@ else
     exit 1
 fi
 
-# Step 3: Build Docker image
-echo -e "${YELLOW}🔄 Step 3: Building Docker image...${NC}"
-docker build -f Dockerfile.azure.db -t $PROJECT_NAME:db-$VERSION .
+# Step 3: Build Docker image (Azure full version)
+echo -e "${YELLOW}🔄 Step 3: Building Docker image (Azure full version with database)...${NC}"
+docker build --build-arg BUILD_TYPE=azure -t $PROJECT_NAME:db-$VERSION .
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Docker image built successfully${NC}"
 else
