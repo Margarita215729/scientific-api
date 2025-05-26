@@ -4,36 +4,15 @@
     {
       "src": "main.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "ui/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/ui/$1"
-    },
-    {
-      "src": "/ads",
-      "dest": "/ui/ads.html"
-    },
-    {
-      "src": "/",
-      "dest": "/ui/index.html"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/main.py"
-    },
     {
       "src": "/(.*)",
       "dest": "/main.py"
     }
   ],
   "env": {
-    "PYTHONPATH": ".",
-    "ENVIRONMENT": "production"
+    "AZURE_BACKEND_URL": "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000"
   }
-}
+} 

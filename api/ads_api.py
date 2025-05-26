@@ -19,6 +19,10 @@ from utils.ads_astronomy_real import (
     search_large_scale_structure,
     get_bibtex
 )
+from api.cosmos_db_config import (
+    get_cached_ads_search,
+    cache_ads_search
+)
 
 router = APIRouter()
 

@@ -1,21 +1,3 @@
-"""
-utils/dataset_fetcher.py
-
-Модуль для получения датасетов и файлов из различных открытых источников.
-Поддерживаемые источники (не полный список):
-    - ArXiv
-    - GitHub
-    - OpenML
-    - PLOS (через PLOS Search API)
-    - BioRxiv (через RSS-канал)
-
-Также модуль предоставляет универсальную функцию read_dataset для анализа содержимого файлов
-разных форматов: pdf, txt, docx, csv, json.
-
-Перед использованием установите следующие библиотеки:
-    pip install requests feedparser PyPDF2 python-docx pandas
-"""
-
 import os
 import json
 import requests

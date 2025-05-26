@@ -1,0 +1,16 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+httpx==0.25.2
+# Heavy scientific stack
+pandas==2.2.2
+numpy==1.26.4
+scipy==1.13.0
+scikit-learn==1.4.2
+matplotlib==3.8.4
+astroquery==0.4.7
+# Azure SDK
+azure-cosmos==4.5.1
+# Async Postgres driver
+asyncpg==0.29.0
+# Additional utilities
+python-dotenv==1.0.1 

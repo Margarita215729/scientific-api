@@ -20,6 +20,12 @@ from utils.astronomy_catalogs_real import (
     DATA_DIR, 
     OUTPUT_DIR
 )
+from api.cosmos_db_config import (
+    get_cached_catalog_data,
+    cache_catalog_data,
+    get_cached_statistics,
+    cache_statistics
+)
 
 router = APIRouter()
 
@@ -167,9 +173,17 @@ async def get_galaxies(
     }
     
     try:
-        # Получаем отфильтрованные данные
-        result = await fetch_filtered_galaxies(filters, include_ml_features=False)
-        galaxies = result["galaxies"]
+        # Проверяем кэш сначала
+        cached_data = await get_cached_catalog_data(source or "all", filters)
+        if cached_data:
+            galaxies = cached_data
+        else:
+            # Получаем отфильтрованные данные
+            result = await fetch_filtered_galaxies(filters, include_ml_features=False)
+            galaxies = result["galaxies"]
+            
+            # Кэшируем результат
+            await cache_catalog_data(source or "all", filters, galaxies)
         
         # Возвращаем в запрошенном формате
         if format.lower() == "csv":
@@ -202,8 +216,17 @@ async def get_catalog_statistics(
     Если не указан, используются все доступные каталоги.
     """
     try:
+        # Проверяем кэш сначала
+        cached_stats = await get_cached_statistics()
+        if cached_stats:
+            return cached_stats
+        
         # Получаем комплексную статистику
         stats = await get_comprehensive_statistics()
+        
+        # Кэшируем результат
+        await cache_statistics(stats)
+        
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении статистики: {str(e)}") 
