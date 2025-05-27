@@ -38,7 +38,7 @@ DATA_DIR = "galaxy_data"
 PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 
 # Get Azure API URL from environment (fallback for remote calls)
-HEAVY_COMPUTE_URL = os.getenv("HEAVY_COMPUTE_URL", "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000").strip()
+HEAVY_COMPUTE_URL = os.getenv("HEAVY_COMPUTE_URL", "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net").strip()
 USE_AZURE_API = bool(HEAVY_COMPUTE_URL) and not HEAVY_LIBS_AVAILABLE
 
 logger.info(f"Heavy API initialized - HEAVY_LIBS_AVAILABLE: {HEAVY_LIBS_AVAILABLE}, USE_AZURE_API: {USE_AZURE_API}")

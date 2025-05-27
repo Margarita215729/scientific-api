@@ -10,7 +10,7 @@ import asyncio
 app = FastAPI(title="Scientific API - Vercel Frontend")
 
 # Azure backend URL
-AZURE_BACKEND_URL = "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000"
+AZURE_BACKEND_URL = "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net"
 
 # Добавляем монтирование статических файлов из директории ui
 app.mount("/static", StaticFiles(directory="ui"), name="static")

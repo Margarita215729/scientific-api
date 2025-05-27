@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Azure Cosmos DB configuration
 COSMOS_DB_ENDPOINT = os.getenv("COSMOS_DB_ENDPOINT", "")
 COSMOS_DB_KEY = os.getenv("COSMOS_DB_KEY", "")
-COSMOS_DB_DATABASE = os.getenv("COSMOS_DB_DATABASE", "scientific-api")
+COSMOS_DB_DATABASE = os.getenv("COSMOS_DB_DATABASE", "scientific-data")
 COSMOS_DB_CONTAINER = os.getenv("COSMOS_DB_CONTAINER", "cache")
 
 # Cache settings

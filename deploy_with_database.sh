@@ -17,8 +17,8 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_NAME="scientific-api"
 VERSION="2.0.0"
-AZURE_RESOURCE_GROUP="scientific-api-rg"
-AZURE_LOCATION="eastus"
+AZURE_RESOURCE_GROUP="scientific-api"
+AZURE_LOCATION="canadacentral"
 
 echo -e "${BLUE}📋 Configuration:${NC}"
 echo "  Project: $PROJECT_NAME"

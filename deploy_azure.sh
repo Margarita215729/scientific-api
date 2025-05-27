@@ -7,10 +7,10 @@ set -e
 
 # Configuration
 RESOURCE_GROUP="scientific-api"
-CONTAINER_NAME="scientific-api-full"
+CONTAINER_NAME="scientific-api"
 REGISTRY_NAME="scientificapiacr"
-IMAGE_NAME="scientific-api-full"
-LOCATION="eastus"
+IMAGE_NAME="gretk/scientific-api-app-image"
+LOCATION="canadacentral"
 
 echo "============================================"
 echo "Azure Container Deployment for Scientific API"

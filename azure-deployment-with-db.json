@@ -18,7 +18,7 @@
     },
     "image": {
       "type": "string",
-      "defaultValue": "scientific-api:db-latest",
+      "defaultValue": "index.docker.io/gretk/scientific-api-app-image:scientific-api",
       "metadata": {
         "description": "Container image to deploy"
       }

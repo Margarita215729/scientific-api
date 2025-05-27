@@ -187,7 +187,6 @@ async def database_status():
     try:
         stats = await db.get_statistics()
         objects = await db.get_astronomical_objects(limit=5)
-        
         return {
             "status": "connected",
             "statistics": stats,

@@ -111,13 +111,6 @@ if __name__ == "__main__":\n\
 ' > /app/init_db.py && chmod +x /app/init_db.py && chown app:app /app/init_db.py; \
     fi
 
-# Switch to app user for Azure builds
-RUN if [ "$BUILD_TYPE" = "azure" ]; then \
-        echo "Switching to app user for Azure build"; \
-    fi
-
-USER ${BUILD_TYPE:+app}
-
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
@@ -127,6 +120,12 @@ ENV PYTHONUNBUFFERED=1
 RUN if [ "$BUILD_TYPE" = "azure" ]; then \
         echo "ENV HEAVY_PIPELINE_ON_START=true" >> /etc/environment; \
     fi
+
+# Switch to app user for Azure builds
+RUN if [ "$BUILD_TYPE" = "azure" ]; then \
+        echo "Switching to app user for Azure build"; \
+    fi
+USER ${BUILD_TYPE:+app}
 
 # Expose port
 EXPOSE 8000

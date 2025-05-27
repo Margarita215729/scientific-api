@@ -13,6 +13,6 @@
     }
   ],
   "env": {
-    "AZURE_BACKEND_URL": "http://scientific-api-full-1748121289.eastus.azurecontainer.io:8000"
+    "AZURE_BACKEND_URL": "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net"
   }
 } 

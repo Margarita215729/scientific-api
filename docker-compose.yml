@@ -2,13 +2,17 @@ version: '3.8'
 
 services:
   scientific-api:
-    build: .
+    image: index.docker.io/gretk/scientific-api-app-image:scientific-api
     ports:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
+      - COSMOS_DB_DATABASE=scientific-data
+      - COSMOS_DB_ACCOUNT=scientific-api-server
+      - SUBNET_NAME=subnet-nwivqmzl
+      - VNET_NAME=vnet-euoxdfir
     volumes:
       - galaxy_data:/app/galaxy_data
     restart: unless-stopped

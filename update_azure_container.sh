@@ -9,7 +9,7 @@ echo "🚀 Updating Scientific API container in Azure..."
 
 # Configuration
 RESOURCE_GROUP="scientific-api"
-CONTAINER_NAME="scientific-api-full"
+CONTAINER_NAME="scientific-api"
 REGISTRY_NAME="scientificapiacr"
 
 # Colors for output
