@@ -35,7 +35,7 @@ resource sites_scientific_api_name_resource 'Microsoft.Web/sites@2024-04-01' = {
       numberOfWorkers: 1
       linuxFxVersion: 'DOCKER|index.docker.io/gretk/${sites_scientific_api_name}-app-image:${sites_scientific_api_name}'
       acrUseManagedIdentityCreds: false
-      alwaysOn: false
+      alwaysOn: true
       http20Enabled: false
       functionAppScaleLimit: 0
       minimumElasticInstanceCount: 0
@@ -117,7 +117,7 @@ resource sites_scientific_api_name_web 'Microsoft.Web/sites/config@2024-04-01' =
     scmType: 'None'
     use32BitWorkerProcess: true
     webSocketsEnabled: false
-    alwaysOn: false
+    alwaysOn: true
     managedPipelineMode: 'Integrated'
     virtualApplications: [
       {

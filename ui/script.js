@@ -1,685 +1,314 @@
-// Константы и глобальные переменные
-const API_BASE_URL = '';  // Empty string for relative paths
-let mainChart = null;
-let currentView = '3d';
-let galaxyData = [];
-let isSimpleMode = false;
+// Basic frontend JavaScript for Scientific API
 
-// Цвета для каталогов
-const CATALOG_COLORS = {
-    'SDSS': '#1f77b4',
-    'Euclid': '#ff7f0e',
-    'DESI': '#2ca02c',
-    'DES': '#d62728'
-};
-
-// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    // Проверим доступность API
-    testApiEndpoints();
+    // Подсветка активного пункта меню
+    const navLinks = document.querySelectorAll('nav a');
+    const currentPath = window.location.pathname;
+    const adsPath = '/static/ads.html'; // или просто 'ads.html' если Vercel правильно настроит
+    const astroPath = '/static/astro.html'; // или 'astro.html'
 
-    // Загрузка начальных данных
-    loadCatalogStatus();
-    loadStatistics();
-    loadGalaxies();
-
-    // Обработчик для формы фильтров
-    document.getElementById('filter-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        loadGalaxies();
+    navLinks.forEach(link => {
+        const linkPath = link.getAttribute('href');
+        if (linkPath === '/' && (currentPath === '/' || currentPath.endsWith('index.html'))) {
+            link.classList.add('active');
+        }
+        // Для ads.html и astro.html, сравниваем концы путей, т.к. Vercel может добавлять /static/
+        else if (linkPath.endsWith('ads.html') && currentPath.endsWith(adsPath)) {
+            link.classList.add('active');
+        }
+        else if (linkPath.endsWith('astro.html') && currentPath.endsWith(astroPath)) {
+            link.classList.add('active');
+        }
+         else if (linkPath === '/docs' && currentPath.startsWith('/docs')) {
+            link.classList.add('active');
+        }
     });
 
-    // Обработчики для кнопок переключения вида графика
-    document.querySelectorAll('[data-view]').forEach(button => {
-        button.addEventListener('click', (e) => {
-            currentView = e.target.getAttribute('data-view');
-            document.querySelectorAll('[data-view]').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            e.target.classList.add('active');
-            updateVisualization();
+    // Обработчик для формы поиска ADS на ads.html
+    const searchFormAds = document.getElementById('searchFormAds');
+    if (searchFormAds) {
+        const searchTypeSelect = document.getElementById('searchType');
+        const objectParamsDiv = document.getElementById('objectParams');
+        const coordsParamsDiv = document.getElementById('coordsParams');
+        const catalogParamsDiv = document.getElementById('catalogParams');
+        const adsQueryInput = document.getElementById('adsQuery');
+
+        searchTypeSelect.addEventListener('change', function() {
+            objectParamsDiv.style.display = 'none';
+            coordsParamsDiv.style.display = 'none';
+            catalogParamsDiv.style.display = 'none';
+            adsQueryInput.required = true; // По умолчанию основное поле запроса обязательно
+
+            if (this.value === 'object') {
+                objectParamsDiv.style.display = 'block';
+                adsQueryInput.required = false; // Для поиска по объекту, имя объекта обязательно, а не общий запрос
+            } else if (this.value === 'coordinates') {
+                coordsParamsDiv.style.display = 'block';
+                adsQueryInput.required = false;
+            } else if (this.value === 'catalog') {
+                catalogParamsDiv.style.display = 'block';
+                adsQueryInput.required = false;
+            }
         });
-    });
 
-    // Активируем первую кнопку по умолчанию
-    document.querySelector('[data-view="3d"]').classList.add('active');
-    
-    // Инициализация формы поиска литературы ADS
-    if (document.getElementById('ads-search-form')) {
-        document.getElementById('ads-search-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            searchAdsLiterature();
+        searchFormAds.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams();
+            
+            const query = formData.get('query');
+            const searchType = formData.get('search_type');
+            params.append('max_results', formData.get('max_results'));
+
+            let apiPath = '/api/ads/search'; // Базовый путь для ADS поиска
+
+            if (searchType === 'general') {
+                params.append('query', query);
+                params.append('search_type', 'general');
+            } else if (searchType === 'object') {
+                params.append('object_name', formData.get('object_name'));
+                apiPath = '/api/ads/search-by-object'; // Специальный эндпоинт
+            } else if (searchType === 'coordinates') {
+                params.append('ra', formData.get('ra'));
+                params.append('dec', formData.get('dec'));
+                params.append('radius', formData.get('radius'));
+                apiPath = '/api/ads/search-by-coordinates';
+            } else if (searchType === 'catalog') {
+                params.append('catalog', formData.get('catalog_name'));
+                apiPath = '/api/ads/search-by-catalog';
+            }
+
+            const resultsContainer = document.getElementById('adsResultsContainer');
+            const loadingIndicator = document.getElementById('loadingAds');
+            resultsContainer.innerHTML = '';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`${apiPath}?${params.toString()}`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Ошибка API: ${response.status} ${response.statusText}. ${errorData.detail || ''}`);
+                }
+                const data = await response.json();
+                displayAdsResults(data, resultsContainer);
+            } catch (error) {
+                resultsContainer.innerHTML = `<p class="error">Не удалось получить результаты: ${error.message}</p>`;
+                console.error("ADS Search Error:", error);
+            }
+            loadingIndicator.style.display = 'none';
+        });
+    }
+
+    // Обработчик для формы галактик на astro.html
+    const galaxiesForm = document.getElementById('galaxiesForm');
+    if (galaxiesForm) {
+        galaxiesForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams();
+            for (const [key, value] of formData.entries()) {
+                if (value) { // Добавляем параметр только если у него есть значение
+                    params.append(key, value);
+                }
+            }
+
+            const resultsContainer = document.getElementById('galaxiesTableContainer');
+            const loadingIndicator = document.getElementById('loadingGalaxies');
+            resultsContainer.innerHTML = '';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/astro/galaxies?${params.toString()}`);
+                 if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Ошибка API: ${response.status} ${response.statusText}. ${errorData.detail || ''}`);
+                }
+                const data = await response.json();
+                displayGalaxiesTable(data.galaxies, resultsContainer);
+            } catch (error) {
+                resultsContainer.innerHTML = `<p class="error">Не удалось получить данные галактик: ${error.message}</p>`;
+                 console.error("Galaxies Fetch Error:", error);
+            }
+            loadingIndicator.style.display = 'none';
         });
     }
 });
 
-// Проверка доступности API эндпоинтов
-async function testApiEndpoints() {
+async function checkBackendStatus() {
+    const resultContainer = document.getElementById('backend-status-result');
+    if (!resultContainer) return;
+    resultContainer.textContent = 'Проверка статуса...';
     try {
-        const response = await fetch(`${API_BASE_URL}/ping`);
-        if (response.ok) {
-            console.log('API is available');
-        } else {
-            console.warn('API ping responded with non-OK status');
-            isSimpleMode = true;
-            showApiStatusMessage();
-        }
-    } catch (error) {
-        console.error('API ping test failed:', error);
-        isSimpleMode = true;
-        showApiStatusMessage();
-    }
-}
-
-// Показать сообщение о статусе API
-function showApiStatusMessage() {
-    const messageElement = document.getElementById('api-status-message');
-    if (messageElement) {
-        messageElement.style.display = 'block';
-    }
-}
-
-// Загрузка статуса каталогов
-async function loadCatalogStatus() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/astro/status`);
-        if (!response.ok) throw new Error('Не удалось загрузить статус каталогов');
-        
+        const response = await fetch('/api/health');
         const data = await response.json();
-        const statusContainer = document.getElementById('catalog-status');
-        
-        if (data.status === 'ok') {
-            let html = '';
-            data.catalogs.forEach(catalog => {
-                const statusClass = catalog.available ? 'status-available' : 'status-unavailable';
-                const statusText = catalog.available ? 'Доступен' : 'Недоступен';
-                
-                html += `
-                <div class="catalog-item">
-                    <span class="catalog-status ${statusClass}"></span>
-                    <strong>${catalog.name}</strong>: 
-                    <span class="ms-1">${statusText}</span>
-                    ${catalog.available ? `<small class="text-muted ms-2">(${catalog.rows} объектов)</small>` : ''}
-                </div>`;
-            });
-            
-            if (data.message) {
-                html += `<div class="alert alert-info mt-3">${data.message}</div>`;
-            }
-            
-            statusContainer.innerHTML = html;
-        } else {
-            statusContainer.innerHTML = `<div class="alert alert-warning">Каталоги не загружены</div>`;
-        }
+        resultContainer.textContent = JSON.stringify(data, null, 2);
     } catch (error) {
-        console.error('Ошибка при загрузке статуса:', error);
-        document.getElementById('catalog-status').innerHTML = `
-            <div class="alert alert-danger">
-                Ошибка при загрузке статуса каталогов: ${error.message}
-            </div>`;
+        resultContainer.textContent = `Ошибка при проверке статуса бэкенда: ${error.message}`;
+        console.error("Backend Status Error:", error);
     }
 }
 
-// Загрузка общей статистики
-async function loadStatistics() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/astro/statistics`);
-        if (!response.ok) throw new Error('Не удалось загрузить статистику');
-        
-        const data = await response.json();
-        const statsContainer = document.getElementById('statistics');
-        
-        let html = `
-            <div class="stat-item">
-                <span class="stat-label">Всего галактик:</span>
-                <span class="stat-value">${data.total_galaxies.toLocaleString()}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Красное смещение:</span>
-                <span class="stat-value">${data.redshift.min} - ${data.redshift.max}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Среднее смещение:</span>
-                <span class="stat-value">${data.redshift.mean.toFixed(3)}</span>
-            </div>
-            <hr>
-            <h6>Источники данных:</h6>
-        `;
-        
-        // Добавляем статистику по источникам
-        Object.entries(data.sources).forEach(([source, count]) => {
-            const colorClass = `color-${source.toLowerCase()}`;
-            html += `
-            <div class="stat-item">
-                <span class="stat-label ${colorClass}">${source}:</span>
-                <span class="stat-value">${count.toLocaleString()}</span>
-            </div>`;
-        });
-        
-        statsContainer.innerHTML = html;
-    } catch (error) {
-        console.error('Ошибка при загрузке статистики:', error);
-        document.getElementById('statistics').innerHTML = `
-            <div class="alert alert-danger">
-                Ошибка при загрузке статистики: ${error.message}
-            </div>`;
-    }
-}
-
-// Загрузка данных галактик с применением фильтров
-async function loadGalaxies() {
-    try {
-        // Получаем значения фильтров
-        const source = document.getElementById('source').value;
-        const minZ = document.getElementById('min-z').value;
-        const maxZ = document.getElementById('max-z').value;
-        const limit = document.getElementById('limit').value;
-        
-        // Формируем параметры запроса
-        const params = new URLSearchParams();
-        if (source) params.append('source', source);
-        if (minZ) params.append('min_z', minZ);
-        if (maxZ) params.append('max_z', maxZ);
-        if (limit) params.append('limit', limit);
-        
-        // Показываем индикатор загрузки
-        document.getElementById('galaxies-table').innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Загрузка...</span>
-                    </div>
-                </td>
-            </tr>`;
-        
-        const response = await fetch(`${API_BASE_URL}/astro/galaxies?${params.toString()}`);
-        if (!response.ok) throw new Error('Не удалось загрузить данные галактик');
-        
-        const data = await response.json();
-        galaxyData = data.galaxies; // Сохраняем для визуализации
-        
-        // Обновляем таблицу
-        updateGalaxyTable(galaxyData);
-        
-        // Обновляем визуализацию
-        updateVisualization();
-    } catch (error) {
-        console.error('Ошибка при загрузке галактик:', error);
-        document.getElementById('galaxies-table').innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center text-danger">
-                    Ошибка при загрузке данных: ${error.message}
-                </td>
-            </tr>`;
-    }
-}
-
-// Обновление таблицы с данными галактик
-function updateGalaxyTable(galaxies) {
-    const tableBody = document.getElementById('galaxies-table');
-    
-    if (galaxies.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center">
-                    Нет данных, соответствующих фильтрам
-                </td>
-            </tr>`;
+function displayAdsResults(data, container) {
+    if (!data || (!data.publications && !data.results)) {
+        container.innerHTML = '<p>Нет результатов для отображения.</p>';
         return;
     }
+
+    const items = data.publications || data.results || [];
+    if (items.length === 0) {
+        container.innerHTML = '<p>Публикации не найдены.</p>';
+        return;
+    }
+
+    const ul = document.createElement('ul');
+    items.forEach(item => {
+        const li = document.createElement('li');
+        let title = Array.isArray(item.title) ? item.title.join(', ') : item.title;
+        let authors = Array.isArray(item.author) ? item.author.join(', ') : (item.author || 'N/A');
+        
+        li.innerHTML = `
+            <strong>${title || 'Без названия'}</strong><br>
+            Авторы: ${authors}<br>
+            Год: ${item.year || 'N/A'}<br>
+            Bibcode: ${item.bibcode || 'N/A'}<br>
+            DOI: ${item.doi ? `<a href="https://doi.org/${item.doi}" target="_blank">${item.doi}</a>` : 'N/A'}<br>
+            Цитирования: ${item.citation_count !== undefined ? item.citation_count : 'N/A'}
+            ${item.abstract ? `<p><em>Аннотация:</em> ${item.abstract.substring(0, 200)}...</p>` : ''}
+        `;
+        ul.appendChild(li);
+    });
+    container.appendChild(ul);
+}
+
+function displayGalaxiesTable(galaxies, container) {
+    if (!galaxies || galaxies.length === 0) {
+        container.innerHTML = '<p>Данные по галактикам не найдены.</p>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const tbody = document.createElement('tbody');
+
+    // Определяем заголовки на основе ключей первого объекта (если они есть)
+    const headers = Object.keys(galaxies[0] || {});
     
-    let html = '';
+    const headerRow = document.createElement('tr');
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+
     galaxies.forEach(galaxy => {
-        html += `
-        <tr>
-            <td>${galaxy.RA}</td>
-            <td>${galaxy.DEC}</td>
-            <td>${galaxy.redshift}</td>
-            <td>${galaxy.source}</td>
-            <td>${galaxy.X ? galaxy.X.toFixed(1) : 'N/A'}</td>
-            <td>${galaxy.Y ? galaxy.Y.toFixed(1) : 'N/A'}</td>
-            <td>${galaxy.Z ? galaxy.Z.toFixed(1) : 'N/A'}</td>
-        </tr>`;
-    });
-    
-    tableBody.innerHTML = html;
-}
-
-// Обновление визуализации данных
-function updateVisualization() {
-    if (galaxyData.length === 0) return;
-    
-    // Уничтожаем предыдущий график, если он существует
-    if (mainChart) {
-        mainChart.destroy();
-    }
-    
-    if (currentView === '3d') {
-        create3DVisualization();
-    } else if (currentView === 'redshift') {
-        createRedshiftVisualization();
-    }
-}
-
-// Создание 3D визуализации распределения галактик
-function create3DVisualization() {
-    // Группируем данные по источникам
-    const datasets = [];
-    
-    Object.keys(CATALOG_COLORS).forEach(source => {
-        const filteredData = galaxyData.filter(galaxy => galaxy.source === source);
-        
-        if (filteredData.length > 0) {
-            datasets.push({
-                label: source,
-                data: filteredData.map(galaxy => ({
-                    x: galaxy.X,
-                    y: galaxy.Y,
-                    r: 5 + galaxy.redshift * 3 // Размер точки зависит от красного смещения
-                })),
-                backgroundColor: CATALOG_COLORS[source],
-                borderColor: CATALOG_COLORS[source],
-                borderWidth: 1
-            });
-        }
-    });
-    
-    const ctx = document.getElementById('main-chart').getContext('2d');
-    mainChart = new Chart(ctx, {
-        type: 'bubble',
-        data: {
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'X (Мпк)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Y (Мпк)'
-                    }
-                }
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const galaxy = galaxyData[context.dataIndex];
-                            return [
-                                `Источник: ${galaxy.source}`,
-                                `Координаты: (${galaxy.X.toFixed(1)}, ${galaxy.Y.toFixed(1)}, ${galaxy.Z.toFixed(1)})`,
-                                `Красное смещение: ${galaxy.redshift}`
-                            ];
-                        }
-                    }
-                },
-                title: {
-                    display: true,
-                    text: '2D проекция распределения галактик в пространстве'
-                }
+        const row = document.createElement('tr');
+        headers.forEach(header => {
+            const cell = document.createElement('td');
+            let value = galaxy[header];
+            // Округляем числа для лучшего отображения
+            if (typeof value === 'number') {
+                value = parseFloat(value.toFixed(4));
             }
-        }
+            cell.textContent = value !== null && value !== undefined ? value : 'N/A';
+            row.appendChild(cell);
+        });
+        tbody.appendChild(row);
     });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    container.appendChild(table);
 }
 
-// Создание визуализации распределения красных смещений
-function createRedshiftVisualization() {
-    // Собираем данные по красным смещениям для каждого источника
-    const datasets = [];
-    const labels = [];
-    
-    // Создаем бины для гистограммы
-    const minZ = Math.min(...galaxyData.map(g => g.redshift));
-    const maxZ = Math.max(...galaxyData.map(g => g.redshift));
-    const binSize = (maxZ - minZ) / 10;
-    
-    for (let i = 0; i < 10; i++) {
-        const binStart = minZ + i * binSize;
-        const binEnd = binStart + binSize;
-        labels.push(`${binStart.toFixed(1)}-${binEnd.toFixed(1)}`);
-    }
-    
-    // Создаем данные для каждого источника
-    Object.keys(CATALOG_COLORS).forEach(source => {
-        const sourceData = galaxyData.filter(galaxy => galaxy.source === source);
-        
-        if (sourceData.length > 0) {
-            // Считаем количество галактик в каждом бине
-            const counts = new Array(10).fill(0);
-            
-            sourceData.forEach(galaxy => {
-                const binIndex = Math.min(9, Math.floor((galaxy.redshift - minZ) / binSize));
-                counts[binIndex]++;
-            });
-            
-            datasets.push({
-                label: source,
-                data: counts,
-                backgroundColor: CATALOG_COLORS[source],
-                borderColor: CATALOG_COLORS[source],
-                borderWidth: 1
-            });
-        }
-    });
-    
-    const ctx = document.getElementById('main-chart').getContext('2d');
-    mainChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Красное смещение (z)'
-                    },
-                    stacked: true
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Количество галактик'
-                    },
-                    stacked: true
-                }
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Распределение галактик по красному смещению'
-                }
-            }
-        }
-    });
-}
-
-// Функции для работы с ADS API
-
-// Поиск литературы через ADS API
-async function searchAdsLiterature() {
+async function getAstroStatus() {
+    const resultContainer = document.getElementById('astro-status-result');
+    if (!resultContainer) return;
+    resultContainer.textContent = 'Получение статуса каталогов...';
     try {
-        const searchType = document.getElementById('ads-search-type').value;
-        const resultsContainer = document.getElementById('ads-results');
-        
-        resultsContainer.innerHTML = `
-            <div class="d-flex justify-content-center my-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Загрузка...</span>
-                </div>
-            </div>`;
-        
-        let response;
-        let data;
-        
-        switch (searchType) {
-            case 'coordinates':
-                const ra = document.getElementById('ads-ra').value;
-                const dec = document.getElementById('ads-dec').value;
-                const radius = document.getElementById('ads-radius').value || 0.1;
-                
-                if (!ra || !dec) {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-warning">
-                            Пожалуйста, укажите координаты (RA и DEC)
-                        </div>`;
-                    return;
-                }
-                
-                response = await fetch(`${API_BASE_URL}/ads/search-by-coordinates?ra=${ra}&dec=${dec}&radius=${radius}`);
-                break;
-                
-            case 'object':
-                const objectName = document.getElementById('ads-object-name').value;
-                
-                if (!objectName) {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-warning">
-                            Пожалуйста, укажите название объекта
-                        </div>`;
-                    return;
-                }
-                
-                response = await fetch(`${API_BASE_URL}/ads/search-by-object?object_name=${encodeURIComponent(objectName)}`);
-                break;
-                
-            case 'catalog':
-                const catalog = document.getElementById('ads-catalog').value;
-                
-                if (!catalog) {
-                    resultsContainer.innerHTML = `
-                        <div class="alert alert-warning">
-                            Пожалуйста, выберите каталог
-                        </div>`;
-                    return;
-                }
-                
-                response = await fetch(`${API_BASE_URL}/ads/search-by-catalog?catalog=${catalog}`);
-                break;
-                
-            case 'lss':
-                const keywords = document.getElementById('ads-keywords').value;
-                const startYear = document.getElementById('ads-start-year').value || 2010;
-                
-                let url = `${API_BASE_URL}/ads/large-scale-structure?start_year=${startYear}`;
-                if (keywords) {
-                    const keywordArray = keywords.split(',').map(k => k.trim());
-                    keywordArray.forEach(keyword => {
-                        url += `&additional_keywords=${encodeURIComponent(keyword)}`;
-                    });
-                }
-                
-                response = await fetch(url);
-                break;
-                
-            default:
-                resultsContainer.innerHTML = `
-                    <div class="alert alert-warning">
-                        Выберите тип поиска
-                    </div>`;
-                return;
-        }
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        data = await response.json();
-        displayAdsResults(data, searchType, resultsContainer);
-        
+        const response = await fetch('/api/astro/status');
+        const data = await response.json();
+        resultContainer.textContent = JSON.stringify(data, null, 2);
     } catch (error) {
-        console.error('Ошибка при поиске литературы:', error);
-        const resultsContainer = document.getElementById('ads-results');
-        resultsContainer.innerHTML = `
-            <div class="alert alert-danger">
-                Ошибка при поиске: ${error.message}
-            </div>`;
+        resultContainer.textContent = `Ошибка: ${error.message}`;
+        console.error("Astro Status Error:", error);
     }
 }
 
-// Отображение результатов поиска литературы
-function displayAdsResults(data, searchType, container) {
-    let html = '';
-    let publications = [];
-    let total = 0;
-    
-    // Извлекаем публикации в зависимости от типа поиска
-    switch (searchType) {
-        case 'coordinates':
-        case 'object':
-            publications = data.publications || [];
-            total = data.count || 0;
-            break;
-        case 'catalog':
-            publications = data.publications || [];
-            total = data.total_found || 0;
-            
-            // Если есть статистика по ключевым словам, отображаем её
-            if (data.keyword_stats) {
-                html += `<div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title">Ключевые слова для каталога ${data.catalog}</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">`;
-                        
-                // Сортируем ключевые слова по частоте
-                const sortedKeywords = Object.entries(data.keyword_stats)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 20); // Показываем только топ-20
-                
-                sortedKeywords.forEach(([keyword, count]) => {
-                    html += `<div class="col-md-6 mb-1">
-                        <span class="badge bg-light text-dark">${keyword} (${count})</span>
-                    </div>`;
-                });
-                
-                html += `</div></div></div>`;
-            }
-            break;
-        case 'lss':
-            publications = data.publications || [];
-            total = data.total_found || 0;
-            
-            // Отображаем статистику по годам
-            if (data.year_stats) {
-                html += `<div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title">Публикации по годам</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="years-chart" height="200"></canvas>
-                    </div>
-                </div>`;
-            }
-            break;
-    }
-    
-    // Основная информация о результатах
-    html += `<div class="alert alert-info">
-        Найдено публикаций: ${total}. Показано: ${publications.length}.
-    </div>`;
-    
-    // Таблица с публикациями
-    if (publications.length > 0) {
-        html += `<div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Название</th>
-                        <th>Авторы</th>
-                        <th>Год</th>
-                        <th>Цитирования</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>`;
-                
-        publications.forEach(pub => {
-            const title = Array.isArray(pub.title) ? pub.title[0] : pub.title || 'Без названия';
-            const authors = Array.isArray(pub.author) ? pub.author.slice(0, 3).join(', ') + (pub.author.length > 3 ? ' и др.' : '') : 'Н/Д';
-            const year = pub.year || 'Н/Д';
-            const citations = pub.citation_count || 0;
-            const bibcode = pub.bibcode || '';
-            const doi = pub.doi ? (Array.isArray(pub.doi) ? pub.doi[0] : pub.doi) : '';
-            
-            html += `<tr>
-                <td>${title}</td>
-                <td>${authors}</td>
-                <td>${year}</td>
-                <td>${citations}</td>
-                <td>`;
-                
-            if (bibcode) {
-                html += `<a href="https://ui.adsabs.harvard.edu/abs/${bibcode}" target="_blank" class="btn btn-sm btn-outline-primary">ADS</a> `;
-            }
-            
-            if (doi) {
-                html += `<a href="https://doi.org/${doi}" target="_blank" class="btn btn-sm btn-outline-secondary">DOI</a>`;
-            }
-            
-            html += `</td></tr>`;
-        });
-        
-        html += `</tbody></table></div>`;
-    } else {
-        html += `<div class="alert alert-warning">
-            Публикации не найдены. Попробуйте изменить параметры поиска.
-        </div>`;
-    }
-    
-    container.innerHTML = html;
-    
-    // Если у нас есть статистика по годам и мы ищем крупномасштабные структуры,
-    // создаем график
-    if (searchType === 'lss' && data.year_stats && document.getElementById('years-chart')) {
-        const yearsData = Object.entries(data.year_stats)
-            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
-        
-        new Chart(document.getElementById('years-chart'), {
-            type: 'bar',
-            data: {
-                labels: yearsData.map(item => item[0]),
-                datasets: [{
-                    label: 'Количество публикаций',
-                    data: yearsData.map(item => item[1]),
-                    backgroundColor: '#4e73df',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
+async function getAstroStats() {
+    const resultContainer = document.getElementById('astro-stats-result');
+    if (!resultContainer) return;
+    resultContainer.textContent = 'Получение статистики каталогов...';
+    try {
+        const response = await fetch('/api/astro/statistics');
+        const data = await response.json();
+        resultContainer.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+        resultContainer.textContent = `Ошибка: ${error.message}`;
+        console.error("Astro Stats Error:", error);
     }
 }
 
-// Показать/скрыть поля в зависимости от типа поиска ADS
-function updateAdsSearchFields() {
-    const searchType = document.getElementById('ads-search-type').value;
-    
-    // Скрываем все поля
-    document.querySelectorAll('.ads-search-field').forEach(field => {
-        field.style.display = 'none';
-    });
-    
-    // Показываем нужные поля в зависимости от типа поиска
-    switch (searchType) {
-        case 'coordinates':
-            document.querySelectorAll('.field-coordinates').forEach(field => {
-                field.style.display = 'block';
-            });
-            break;
-        case 'object':
-            document.querySelectorAll('.field-object').forEach(field => {
-                field.style.display = 'block';
-            });
-            break;
-        case 'catalog':
-            document.querySelectorAll('.field-catalog').forEach(field => {
-                field.style.display = 'block';
-            });
-            break;
-        case 'lss':
-            document.querySelectorAll('.field-lss').forEach(field => {
-                field.style.display = 'block';
-            });
-            break;
+let downloadTaskId = null;
+let downloadInterval = null;
+
+async function downloadCatalogs() {
+    const resultContainer = document.getElementById('download-status-result');
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (!resultContainer || !downloadBtn) return;
+
+    resultContainer.textContent = 'Запуск загрузки каталогов...';
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Загрузка...';
+
+    try {
+        const response = await fetch('/api/astro/download', { method: 'POST' });
+        const data = await response.json();
+        if (data.task_id) {
+            downloadTaskId = data.task_id;
+            resultContainer.textContent = `Задача загрузки запущена, ID: ${downloadTaskId}. Проверка статуса...`;
+            // Запускаем интервальную проверку статуса
+            if(downloadInterval) clearInterval(downloadInterval);
+            downloadInterval = setInterval(checkDownloadStatus, 5000); 
+        } else {
+            resultContainer.textContent = `Ошибка запуска задачи: ${JSON.stringify(data)}`;
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = 'Загрузить/обновить каталоги';
+        }
+    } catch (error) {
+        resultContainer.textContent = `Ошибка при запуске загрузки: ${error.message}`;
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Загрузить/обновить каталоги';
+        console.error("Download Catalogs Error:", error);
+    }
+}
+
+async function checkDownloadStatus() {
+    const resultContainer = document.getElementById('download-status-result');
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (!downloadTaskId || !resultContainer || !downloadBtn) return;
+
+    try {
+        const response = await fetch(`/api/astro/download/${downloadTaskId}`);
+        const data = await response.json();
+        resultContainer.textContent = `Статус задачи ${downloadTaskId}: ${data.status} (${data.progress || 0}%) - ${data.message || ''}`;
+        
+        if (data.status === 'completed' || data.status === 'failed') {
+            clearInterval(downloadInterval);
+            downloadInterval = null;
+            downloadTaskId = null;
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = 'Загрузить/обновить каталоги';
+            if(data.status === 'completed') {
+                 resultContainer.textContent += '\nЗагрузка завершена! Можете обновить статус каталогов.';
+            }
+        }
+    } catch (error) {
+        resultContainer.textContent = `Ошибка проверки статуса задачи: ${error.message}`;
+        clearInterval(downloadInterval);
+        downloadInterval = null;
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Загрузить/обновить каталоги';
+        console.error("Check Download Status Error:", error);
     }
 } 

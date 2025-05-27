@@ -3,175 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ крупномасштабных структур Вселенной</title>
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" href="/favicon.png" type="image/png">
-    <link rel="apple-touch-icon" href="/favicon.png"> <!-- Using png as a placeholder for apple-touch-icon -->
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Пользовательские стили -->
-    <link href="/static/styles.css" rel="stylesheet">
-    <!-- Chart.js для визуализации -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Scientific API</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <!-- Шапка -->
-    <header class="bg-dark text-white p-3">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3">Анализ крупномасштабных структур Вселенной</h1>
-                    <p class="mb-0">API для работы с астрономическими каталогами</p>
-                </div>
-                <div>
-                    <a href="/ads" class="btn btn-outline-light">Поиск научной литературы (ADS)</a>
-                </div>
-            </div>
-        </div>
+    <header>
+        <h1>🔬 Scientific API</h1>
+        <nav>
+            <a href="/">Главная</a>
+            <a href="/static/ads.html">ADS Поиск</a>
+            <a href="/static/astro.html">Астроданные</a>
+            <a href="/docs" target="_blank">API Документация</a>
+        </nav>
     </header>
-
-    <!-- Основной контент -->
-    <div class="container mt-4">
-        <!-- Сообщение о статусе API -->
-        <div id="api-status-message" class="alert alert-info mb-4" style="display: none;">
-            API работает в упрощенном режиме. Некоторые функции могут быть недоступны.
-        </div>
-        
-        <!-- Навигация по вкладкам -->
-        <ul class="nav nav-tabs mb-4" id="main-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="catalogs-tab" data-bs-toggle="tab" data-bs-target="#catalogs-content" type="button" role="tab" aria-controls="catalogs-content" aria-selected="true">Каталоги</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="literature-tab" data-bs-toggle="tab" data-bs-target="#literature-content" type="button" role="tab" aria-controls="literature-content" aria-selected="false">Литература</button>
-            </li>
-        </ul>
-
-        <!-- Содержимое вкладок -->
-        <div class="tab-content" id="main-tabs-content">
-            <!-- Вкладка с каталогами -->
-            <div class="tab-pane fade show active" id="catalogs-content" role="tabpanel" aria-labelledby="catalogs-tab">
-                <div class="row">
-                    <!-- Левая панель со статусом и фильтрами -->
-                    <div class="col-md-4">
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title">Статус каталогов</h5>
-                            </div>
-                            <div class="card-body" id="catalog-status">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Загрузка...</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title">Фильтрация данных</h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="filter-form">
-                                    <div class="mb-3">
-                                        <label for="source" class="form-label">Источник каталога</label>
-                                        <select class="form-select" id="source">
-                                            <option value="">Все источники</option>
-                                            <option value="SDSS">SDSS</option>
-                                            <option value="Euclid">Euclid</option>
-                                            <option value="DESI">DESI</option>
-                                            <option value="DES">DES</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="min-z" class="form-label">Мин. красное смещение (z)</label>
-                                        <input type="number" class="form-control" id="min-z" min="0" step="0.1">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="max-z" class="form-label">Макс. красное смещение (z)</label>
-                                        <input type="number" class="form-control" id="max-z" min="0" step="0.1">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="limit" class="form-label">Количество объектов</label>
-                                        <input type="number" class="form-control" id="limit" min="1" max="1000" value="100">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100">Применить фильтры</button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title">Общая статистика</h5>
-                            </div>
-                            <div class="card-body" id="statistics">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Загрузка...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Правая панель с визуализацией и таблицей -->
-                    <div class="col-md-8">
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">Визуализация данных</h5>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" data-view="3d">3D распределение</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" data-view="redshift">Красное смещение</button>
-                                </div>
-                            </div>
-                            <div class="card-body visualization-container">
-                                <canvas id="main-chart"></canvas>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title">Данные галактик</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>RA</th>
-                                                <th>DEC</th>
-                                                <th>Красное смещение</th>
-                                                <th>Источник</th>
-                                                <th>X</th>
-                                                <th>Y</th>
-                                                <th>Z</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="galaxies-table">
-                                            <tr>
-                                                <td colspan="7" class="text-center">
-                                                    <div class="spinner-border text-primary" role="status">
-                                                        <span class="visually-hidden">Загрузка...</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white p-3 mt-5">
-        <div class="container">
-            <p class="mb-0 text-center">Разработано для научного исследования крупномасштабных структур Вселенной</p>
-        </div>
+    <main>
+        <section id="overview">
+            <h2>Добро пожаловать в Scientific API!</h2>
+            <p>Эта платформа предоставляет доступ к астрономическим данным, инструментам анализа и научным публикациям.</p>
+            <p>Используйте навигацию выше для доступа к различным функциям.</p>
+        </section>
+        <section id="features">
+            <h3>Основные возможности:</h3>
+            <ul>
+                <li>🛰️ Доступ к данным астрономических каталогов (SDSS, DESI, DES, Euclid).</li>
+                <li>📚 Поиск публикаций в NASA ADS.</li>
+                <li>📊 Статистический анализ и получение данных о галактиках.</li>
+                <li>🤖 Подготовка ML-готовых датасетов (в разработке).</li>
+            </ul>
+        </section>
+        <section id="status">
+            <h3>Статус Бэкенда</h3>
+            <button onclick="checkBackendStatus()">Проверить статус Azure Backend</button>
+            <pre id="backend-status-result"></pre>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Scientific API Project</p>
     </footer>
-
-    <!-- Bootstrap JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Пользовательский JavaScript -->
     <script src="/static/script.js"></script>
 </body>
 </html> 
