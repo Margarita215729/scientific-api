@@ -1,13 +1,17 @@
 #!/bin/bash
 
+# Script to manage data pipelines for the Scientific API
+# (e.g., ensure DB/collections exist, trigger data preprocessing)
+
 set -e # Exit immediately if a command exits with a non-zero status.
 
 # --- Configuration ---
+# Load from deploy.env or set directly
 if [ -f deploy.env ]; then
     echo "Sourcing environment variables from deploy.env"
     set -a # automatically export all variables
     source deploy.env
-    set +a 
+    set +a # stop automatically exporting
 fi
 
 # Ensure critical variables are set, otherwise exit
@@ -30,17 +34,12 @@ WEB_APP_URL="https://$WEB_APP_URL_RAW"
 echo "   ✅ Web App URL: $WEB_APP_URL"
 
 
-# Collections to ensure exist (collection_name: shard_key_path_for_mongodb)
-declare -A COLLECTIONS_TO_ENSURE=(
-    ["users"]="username"
-    ["api_keys"]="user_id"
-    ["astronomical_objects"]="catalog_source"
-    ["astronomical_data"]="object_id"
-    ["search_history"]="user_id"
-    ["ml_analysis_results"]="user_id"
-    ["api_cache"]="_id"
-    ["system_statistics"]="metric_name"
-)
+# Collections to ensure exist
+# Array for collection names
+COLLECTION_NAMES=("users" "api_keys" "astronomical_objects" "astronomical_data" "search_history" "ml_analysis_results" "api_cache" "system_statistics")
+
+# Corresponding array for shard key paths (must be in the same order as COLLECTION_NAMES)
+COLLECTION_SHARD_KEYS=("username" "user_id" "catalog_source" "object_id" "user_id" "user_id" "_id" "metric_name")
 
 # --- Functions ---
 
@@ -69,8 +68,9 @@ ensure_database_exists() {
 ensure_collections_exist() {
     echo ""
     echo "Ensuring collections exist and shard keys are configured (if creating new)..."
-    for collection_name in "${!COLLECTIONS_TO_ENSURE[@]}"; do
-        shard_key_path="${COLLECTIONS_TO_ENSURE[$collection_name]}"
+    for i in "${!COLLECTION_NAMES[@]}"; do
+        collection_name="${COLLECTION_NAMES[$i]}"
+        shard_key_path="${COLLECTION_SHARD_KEYS[$i]}"
         echo "  Checking collection: '$collection_name' with intended shard key: '$shard_key_path'..."
         
         if az cosmosdb mongodb collection show --account-name "$COSMOS_DB_ACCOUNT_NAME" --database-name "$COSMOS_DB_DATABASE_NAME" --name "$collection_name" --resource-group "$AZURE_RESOURCE_GROUP" &> /dev/null; then
@@ -83,6 +83,7 @@ ensure_collections_exist() {
                 --name "$collection_name" \
                 --resource-group "$AZURE_RESOURCE_GROUP" \
                 --shard "$shard_key_path" \
+                --throughput 400 # Default throughput, adjust as needed or remove for serverless/autoscale
             echo "    ✅ Collection '$collection_name' created."
         fi
     done
@@ -187,11 +188,11 @@ echo ""
 echo "--- Step 2: Triggering Catalog Data Preprocessing Pipeline ---"
 trigger_api_endpoint "/api/heavy/astro/trigger-preprocessing" "Full catalog preprocessing"
 
-Example for custom data processing (Uncomment to activate)
+# Example for custom data processing (Uncomment to activate if needed)
 echo ""
 echo "--- Step 3: Triggering Custom Data Processing (Example: clean) ---"
-CUSTOM_CONFIG_JSON='{"processing_type": "clean"}'
-trigger_api_endpoint "/api/heavy/data/custom-process" "Custom data cleaning" "POST" "$CUSTOM_CONFIG_JSON"
+CUSTOM_PROCESS_PAYLOAD='{"processing_type":"clean"}' # Example payload
+trigger_api_endpoint "/api/heavy/data/custom-process" "Custom data cleaning" "POST" "$CUSTOM_PROCESS_PAYLOAD"
 
 echo ""
 echo "🎉 Pipeline management script finished."
