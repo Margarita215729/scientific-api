@@ -18,23 +18,13 @@ HOSTING_PLAN="${AZURE_HOSTING_PLAN:-ASP-scientificapi-aef1}"
 # Using the one from azure.env for now, assuming it's publicly available or registry is configured for pull
 DOCKER_IMAGE="${DOCKER_IMAGE_FULL_PATH:-index.docker.io/gretk/scientific-api-app-image:scientific-api}"
 
-# Cosmos DB Configuration (These are crucial for the app to connect)
-# These should ideally be set as secrets in GitHub Actions or Azure DevOps, 
-# or retrieved from Azure Key Vault during deployment.
-# For this script, ensure they are available as environment variables or replace placeholders.
-COSMOS_DB_ENDPOINT="${COSMOS_DB_ENDPOINT?Please set COSMOS_DB_ENDPOINT environment variable}" # Makes script fail if not set
-COSMOS_DB_KEY="${COSMOS_DB_KEY?Please set COSMOS_DB_KEY environment variable}" # Makes script fail if not set
-COSMOS_DB_DATABASE="${COSMOS_DB_DATABASE:-scientific-data}"
-DB_TYPE="${DB_TYPE:-cosmosdb}" # Specify the database type for the application
+# Cosmos DB Configuration for MongoDB API
+AZURE_COSMOS_CONNECTION_STRING="${AZURE_COSMOS_CONNECTION_STRING:?Please set AZURE_COSMOS_CONNECTION_STRING environment variable}"
+COSMOS_DATABASE_NAME="${COSMOS_DATABASE_NAME:-scientific-data}" # Убедитесь, что это имя совпадает с тем, что в Connection String или желаемым
+DB_TYPE="${DB_TYPE:-cosmosdb_mongo}" 
 
-# Other API Keys (similarly, manage as secrets)
-ADSABS_TOKEN="${ADSABS_TOKEN?Please set ADSABS_TOKEN environment variable}"
-SERPAPI_KEY="${SERPAPI_KEY?Please set SERPAPI_KEY environment variable}"
-# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN are usually for OAuth flows
-# If your app needs them directly at runtime, they should also be set here.
-# GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}"
-# GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}"
-# GOOGLE_REFRESH_TOKEN="${GOOGLE_REFRESH_TOKEN}"
+ADSABS_TOKEN="${ADSABS_TOKEN:?Please set ADSABS_TOKEN environment variable}"
+SERPAPI_KEY="${SERPAPI_KEY:?Please set SERPAPI_KEY environment variable}"
 
 
 VNET_NAME="${VNET_NAME:-vnet-euoxdfir}"
@@ -56,8 +46,8 @@ echo "  Resource Group: $RESOURCE_GROUP"
 echo "  App Name: $APP_NAME"
 echo "  Location: $LOCATION"
 echo "  Docker Image: $DOCKER_IMAGE"
-echo "  Cosmos DB Account (Endpoint): $COSMOS_DB_ENDPOINT"
-echo "  Cosmos DB Database: $COSMOS_DB_DATABASE"
+echo "  Cosmos DB Connection String: YES (sensitive value - not shown)"
+echo "  Cosmos DB Database Name: $COSMOS_DATABASE_NAME"
 echo "  DB Type: $DB_TYPE"
 echo "  VNet: $VNET_NAME"
 echo "  Subnet: $SUBNET_NAME"
@@ -112,32 +102,34 @@ fi
 # Ensure all necessary environment variables for the application are set here.
 # Especially those for database connection and API keys.
 echo -e "${YELLOW}⚙️  Configuring app settings for Web App '$APP_NAME'...${NC}"
-APP_SETTINGS=(
-    "WEBSITES_ENABLE_APP_SERVICE_STORAGE=false"
-    "DOCKER_REGISTRY_SERVER_URL=${DOCKER_IMAGE%%/*}" # Extracts registry URL e.g. index.docker.io or youracr.azurecr.io
-    "DB_TYPE=${DB_TYPE}"
-    "COSMOS_ENDPOINT=${COSMOS_DB_ENDPOINT}"
-    "COSMOS_KEY=${COSMOS_DB_KEY}" # This should be treated as a secret!
-    "COSMOS_DATABASE_NAME=${COSMOS_DB_DATABASE}"
-    "ADSABS_TOKEN=${ADSABS_TOKEN}" # Secret
-    "SERPAPI_KEY=${SERPAPI_KEY}" # Secret
-    # Add other necessary API keys or settings from azure.env or your config
-    # "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
-    # "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
-    # "GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}"
-    "PYTHONUNBUFFERED=1"
-    "ENVIRONMENT=production"
-    "HEAVY_PIPELINE_ON_START=${HEAVY_PIPELINE_ON_START}"
-    "DATABASE_URL=sqlite:///./scientific_api.db" # Default for SQLite if DB_TYPE is sqlite, but for Cosmos this is not used by app.
-    # Networking related (app might not need these directly if VNet integration is handled by Azure)
-    # "VNET_NAME=${VNET_NAME}" 
-    # "SUBNET_NAME=${SUBNET_NAME}"
-)
 
+# Создаем JSON массив для App Settings
+APP_SETTINGS_JSON="["
+APP_SETTINGS_JSON+="{\"name\": \"WEBSITES_ENABLE_APP_SERVICE_STORAGE\", \"value\": \"false\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"DOCKER_REGISTRY_SERVER_URL\", \"value\": \"${DOCKER_IMAGE%%/*}\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"DB_TYPE\", \"value\": \"${DB_TYPE}\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"AZURE_COSMOS_CONNECTION_STRING\", \"value\": \"${AZURE_COSMOS_CONNECTION_STRING}\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"COSMOS_DATABASE_NAME\", \"value\": \"${COSMOS_DATABASE_NAME}\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"ADSABS_TOKEN\", \"value\": \"${ADSABS_TOKEN}\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"SERPAPI_KEY\", \"value\": \"${SERPAPI_KEY}\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"PYTHONUNBUFFERED\", \"value\": \"1\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"ENVIRONMENT\", \"value\": \"production\", \"slotSetting\": false},"
+APP_SETTINGS_JSON+="{\"name\": \"HEAVY_PIPELINE_ON_START\", \"value\": \"${HEAVY_PIPELINE_ON_START}\", \"slotSetting\": false}"
+APP_SETTINGS_JSON+="]"
+
+# Удаляем временный файл, если он существует
+rm -f appsettings.json
+# Записываем JSON в файл
+echo "$APP_SETTINGS_JSON" > appsettings.json
+
+# Устанавливаем App Settings из файла
 az webapp config appsettings set \
     --resource-group "$RESOURCE_GROUP" \
     --name "$APP_NAME" \
-    --settings "${APP_SETTINGS[@]}"
+    --settings "@appsettings.json" # Используем @ для указания файла
+
+# Удаляем временный файл
+rm -f appsettings.json
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ App settings configured successfully!${NC}"
@@ -155,7 +147,7 @@ APP_STATUS=$(az webapp show --resource-group "$RESOURCE_GROUP" --name "$APP_NAME
 if [ -z "$APP_URL" ]; then 
     echo -e "${RED}❌ Could not retrieve App URL. Deployment might have issues.${NC}"
 else
-    APP_URL="httpshttps://$APP_URL" # Prepend https
+    APP_URL="https://$APP_URL" # Prepend https
     echo ""
     echo -e "${GREEN}✅ Azure Web App deployment appears successful!${NC}"
     echo "==================================================" 
@@ -171,7 +163,7 @@ else
     echo "  HTTPS Only: Enabled (as per Bicep)"
     echo "  TLS Version: 1.2+ (as per Bicep)"
     echo "  VNet Integration: Enabled for subnet '$SUBNET_NAME' (as per Bicep)"
-    echo -e "  App Settings for secrets (COSMOS_DB_KEY, ADSABS_TOKEN, etc.) should be reviewed in Azure Portal for security."
+    echo -e "  App Settings for secrets (AZURE_COSMOS_CONNECTION_STRING, ADSABS_TOKEN, etc.) should be reviewed in Azure Portal for security."
     echo ""
 
     # Test the deployment
