@@ -33,6 +33,8 @@ SUBNET_NAME="${SUBNET_NAME:-subnet-nwivqmzl}"
 # Flag to control heavy data pipeline on startup
 HEAVY_PIPELINE_ON_START="${HEAVY_PIPELINE_ON_START:-true}" # Set to true to run preprocessor on start
 
+STARTUP_COMMAND="python main_azure_with_db.py" # Явно указываем команду запуска для Azure
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -46,6 +48,7 @@ echo "  Resource Group: $RESOURCE_GROUP"
 echo "  App Name: $APP_NAME"
 echo "  Location: $LOCATION"
 echo "  Docker Image: $DOCKER_IMAGE"
+echo "  Startup Command: $STARTUP_COMMAND"
 echo "  Cosmos DB Connection String: YES (sensitive value - not shown)"
 echo "  Cosmos DB Database Name: $COSMOS_DATABASE_NAME"
 echo "  DB Type: $DB_TYPE"
@@ -98,10 +101,8 @@ else
     exit 1
 fi
 
-# Configure app settings
-# Ensure all necessary environment variables for the application are set here.
-# Especially those for database connection and API keys.
-echo -e "${YELLOW}⚙️  Configuring app settings for Web App '$APP_NAME'...${NC}"
+# Configure app settings and startup command
+echo -e "${YELLOW}⚙️  Configuring app settings and startup command for Web App '$APP_NAME'...${NC}"
 
 # Создаем JSON массив для App Settings
 APP_SETTINGS_JSON="["
@@ -122,7 +123,12 @@ rm -f appsettings.json
 # Записываем JSON в файл
 echo "$APP_SETTINGS_JSON" > appsettings.json
 
-# Устанавливаем App Settings из файла
+# Устанавливаем App Settings и Startup Command
+az webapp config set \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$APP_NAME" \
+    --startup-file "$STARTUP_COMMAND"
+
 az webapp config appsettings set \
     --resource-group "$RESOURCE_GROUP" \
     --name "$APP_NAME" \
@@ -132,9 +138,9 @@ az webapp config appsettings set \
 rm -f appsettings.json
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ App settings configured successfully!${NC}"
+    echo -e "${GREEN}✅ App settings and startup command configured successfully!${NC}"
 else
-    echo -e "${RED}❌ Failed to configure app settings.${NC}"
+    echo -e "${RED}❌ Failed to configure app settings and startup command.${NC}"
     # exit 1 # Decide if this is a fatal error
 fi
 
