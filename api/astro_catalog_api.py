@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import os
 import json
+import logging
 from typing import Optional, List, Dict, Any
 
 # Импортируем функции из модуля astronomy_catalogs
@@ -26,6 +27,9 @@ from api.cosmos_db_config import (
     get_cached_statistics,
     cache_statistics
 )
+
+# Logger setup
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -148,6 +152,8 @@ async def get_galaxies(
     max_ra: Optional[float] = Query(None, description="Максимальное прямое восхождение (RA)"),
     min_dec: Optional[float] = Query(None, description="Минимальное склонение (DEC)"),
     max_dec: Optional[float] = Query(None, description="Максимальное склонение (DEC)"),
+    min_magnitude: Optional[float] = Query(None, description="Минимальная звездная величина"),
+    max_magnitude: Optional[float] = Query(None, description="Максимальная звездная величина"),
     format: str = Query("json", description="Формат ответа (json или csv)")
 ):
     """
@@ -169,21 +175,32 @@ async def get_galaxies(
         "max_ra": max_ra,
         "min_dec": min_dec,
         "max_dec": max_dec,
+        "min_magnitude": min_magnitude,
+        "max_magnitude": max_magnitude,
         "limit": limit
     }
     
     try:
-        # Проверяем кэш сначала
-        cached_data = await get_cached_catalog_data(source or "all", filters)
-        if cached_data:
-            galaxies = cached_data
-        else:
-            # Получаем отфильтрованные данные
-            result = await fetch_filtered_galaxies(filters, include_ml_features=False)
-            galaxies = result["galaxies"]
-            
-            # Кэшируем результат
-            await cache_catalog_data(source or "all", filters, galaxies)
+        # Skip cache for now to test core functionality
+        # Debug logging
+        logger.info(f"API galaxies request: source={source}, limit={limit}, min_z={min_z}, max_z={max_z}")
+        logger.info(f"Calling fetch_filtered_galaxies with: catalog={source or 'sdss'}, min_z={min_z if min_z is not None else 0.0}, max_z={max_z if max_z is not None else 5.0}")
+        
+        # Получаем отфильтрованные данные
+        galaxies = await fetch_filtered_galaxies(
+            catalog=source or "sdss",
+            min_z=min_z if min_z is not None else 0.0,
+            max_z=max_z if max_z is not None else 5.0,
+            min_magnitude=min_magnitude if min_magnitude is not None else 10.0,
+            max_magnitude=max_magnitude if max_magnitude is not None else 30.0,
+            limit=limit,
+            object_type="galaxy"
+        )
+        
+        logger.info(f"Got {len(galaxies)} galaxies from fetch_filtered_galaxies")
+        
+        # Skip caching for now
+        # await cache_catalog_data(source or "all", filters, galaxies)
         
         # Возвращаем в запрошенном формате
         if format.lower() == "csv":
@@ -199,7 +216,7 @@ async def get_galaxies(
             "count": len(galaxies),
             "source": source or "all",
             "galaxies": galaxies,
-            "processing_time": result.get("processing_time", 0)
+            "processing_time": 0  # Will be calculated in future updates
         }
     
     except Exception as e:

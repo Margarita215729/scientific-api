@@ -12,7 +12,7 @@ import asyncio
 # Import existing API modules
 from api.astro_catalog_api import router as astro_router
 from api.ads_api import router as ads_router
-from api.ml_analysis_api import router as ml_router
+from api.ml_models import router as ml_router
 from api.heavy_api import router as heavy_api_router
 
 # Import database
