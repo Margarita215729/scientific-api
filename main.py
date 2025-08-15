@@ -1,16 +1,38 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi import FastAPI, Request, HTTPException, Form, Depends, status
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import httpx
 import os
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import asyncio
+import secrets
+import hashlib
 
 app = FastAPI(title="Scientific API - Vercel Frontend")
 
 # Azure backend URL
 AZURE_BACKEND_URL = "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net"
+
+# Simple session management
+SESSIONS = {}
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD_HASH = hashlib.sha256("admin123".encode()).hexdigest()  # Simple demo password
+
+def generate_session_token():
+    return secrets.token_urlsafe(32)
+
+def get_current_user(request: Request) -> Optional[str]:
+    session_token = request.cookies.get("session_token")
+    if session_token and session_token in SESSIONS:
+        return SESSIONS[session_token]["username"]
+    return None
+
+def require_admin(request: Request):
+    user = get_current_user(request)
+    if user != ADMIN_USERNAME:
+        raise HTTPException(status_code=401, detail="Authentication required")
 
 # Добавляем монтирование статических файлов из директории ui
 app.mount("/static", StaticFiles(directory="ui"), name="static")
@@ -23,6 +45,47 @@ async def ping():
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "backend": AZURE_BACKEND_URL}
+
+# Authentication endpoints
+@app.get("/login")
+async def login_page():
+    return FileResponse("ui/login.html")
+
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    if username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH:
+        session_token = generate_session_token()
+        SESSIONS[session_token] = {"username": username}
+        
+        response = RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
+        response.set_cookie(key="session_token", value=session_token, httponly=True)
+        return response
+    else:
+        return RedirectResponse(url="/login?error=1", status_code=status.HTTP_302_FOUND)
+
+@app.get("/logout")
+async def logout(request: Request):
+    session_token = request.cookies.get("session_token")
+    if session_token and session_token in SESSIONS:
+        del SESSIONS[session_token]
+    
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.delete_cookie(key="session_token")
+    return response
+
+@app.get("/admin")
+async def admin_page(request: Request, user: str = Depends(require_admin)):
+    return FileResponse("ui/admin.html")
+
+@app.get("/api/admin/status")
+async def admin_status(request: Request, user: str = Depends(require_admin)):
+    return {
+        "user": user,
+        "sessions_count": len(SESSIONS),
+        "backend_url": AZURE_BACKEND_URL
+    }
 
 @app.get("/api")
 async def root():

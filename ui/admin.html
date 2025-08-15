@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора - Scientific API</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>🔬 Scientific API</h1>
+        <nav>
+            <a href="/">Главная</a>
+            <a href="/static/ads.html">ADS Поиск</a>
+            <a href="/static/astro.html">Астроданные</a>
+            <a href="/docs" target="_blank">API Документация</a>
+            <a href="/logout" class="logout-link">Выйти</a>
+        </nav>
+    </header>
+    <main>
+        <section class="admin-header">
+            <h2>⚙️ Панель администратора</h2>
+            <p>Добро пожаловать в панель управления Scientific API</p>
+        </section>
+
+        <section class="admin-section">
+            <h3>📊 Системная информация</h3>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>Статус системы</h4>
+                    <div id="system-status">Загрузка...</div>
+                </div>
+                <div class="info-card">
+                    <h4>Активные сессии</h4>
+                    <div id="sessions-count">Загрузка...</div>
+                </div>
+                <div class="info-card">
+                    <h4>Backend URL</h4>
+                    <div id="backend-url">Загрузка...</div>
+                </div>
+            </div>
+            <button onclick="refreshSystemInfo()">🔄 Обновить информацию</button>
+        </section>
+
+        <section class="admin-section">
+            <h3>🔗 Мониторинг бэкенда</h3>
+            <button onclick="checkBackendHealth()">🏥 Проверить здоровье бэкенда</button>
+            <button onclick="checkAzureBackend()">☁️ Проверить Azure Backend</button>
+            <pre id="backend-health-result"></pre>
+        </section>
+
+        <section class="admin-section">
+            <h3>📈 Статистика API</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h4>Последняя проверка</h4>
+                    <div id="last-check">Никогда</div>
+                </div>
+                <div class="stat-item">
+                    <h4>Статус бэкенда</h4>
+                    <div id="backend-status">Неизвестно</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <h3>🔧 Административные действия</h3>
+            <div class="admin-actions">
+                <button onclick="clearSessions()" class="danger-button">🗑️ Очистить все сессии</button>
+                <button onclick="showLogs()" class="info-button">📝 Показать логи</button>
+                <button onclick="exportData()" class="success-button">💾 Экспорт данных</button>
+            </div>
+            <div id="admin-actions-result"></div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Scientific API Project</p>
+    </footer>
+    <script src="/static/admin.js"></script>
+</body>
+</html>
