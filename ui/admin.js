@@ -65,9 +65,17 @@ async function checkAzureBackend() {
 
 function clearSessions() {
     if (confirm('Вы уверены, что хотите очистить все активные сессии? Это может привести к выходу других пользователей из системы.')) {
-        // This would require a new endpoint in the backend
-        document.getElementById('admin-actions-result').innerHTML = 
-            '<div class="info-message">Функция очистки сессий будет реализована в следующей версии.</div>';
+        fetch('/api/admin/sessions', { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('admin-actions-result').innerHTML = 
+                    `<div class="success-message">✅ ${data.message}. Осталось сессий: ${data.remaining_sessions}</div>`;
+                refreshSystemInfo(); // Refresh to show updated session count
+            })
+            .catch(error => {
+                document.getElementById('admin-actions-result').innerHTML = 
+                    `<div class="error-message">❌ Ошибка при очистке сессий: ${error.message}</div>`;
+            });
     }
 }
 
@@ -149,6 +157,15 @@ style.textContent = `
         max-height: 200px;
         overflow-y: auto;
         font-size: 12px;
+    }
+    
+    .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #f5c6cb;
+        margin-top: 10px;
     }
 `;
 document.head.appendChild(style);

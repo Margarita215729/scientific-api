@@ -87,6 +87,32 @@ async def admin_status(request: Request, user: str = Depends(require_admin)):
         "backend_url": AZURE_BACKEND_URL
     }
 
+@app.get("/api/admin/sessions")
+async def admin_sessions(request: Request, user: str = Depends(require_admin)):
+    """Get information about active sessions"""
+    sessions_info = []
+    for token, data in SESSIONS.items():
+        sessions_info.append({
+            "token_prefix": token[:8] + "...",
+            "username": data["username"],
+            "created": "Active"  # In a real implementation, you'd store timestamps
+        })
+    return {"sessions": sessions_info, "count": len(sessions_info)}
+
+@app.delete("/api/admin/sessions")
+async def clear_sessions(request: Request, user: str = Depends(require_admin)):
+    """Clear all sessions except current user's session"""
+    current_token = request.cookies.get("session_token")
+    if current_token and current_token in SESSIONS:
+        # Keep only current user's session
+        current_session = SESSIONS[current_token]
+        SESSIONS.clear()
+        SESSIONS[current_token] = current_session
+        return {"message": "All other sessions cleared", "remaining_sessions": 1}
+    else:
+        SESSIONS.clear()
+        return {"message": "All sessions cleared", "remaining_sessions": 0}
+
 @app.get("/api")
 async def root():
     return {
