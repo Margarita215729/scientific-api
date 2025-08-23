@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - Irina Vinokur</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Irina Vinokur</h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/static/portfolio.html">Portfolio</a>
+            <a href="/static/about.html">About</a>
+            <a href="/static/contact.html" class="active">Contact</a>
+        </nav>
+    </header>
+    <main>
+        <section id="contact">
+            <h2>Contact</h2>
+            <div class="contact-container">
+                <div class="contact-info">
+                    <h3>Get in Touch</h3>
+                    <p>I welcome inquiries about my work, commissions, exhibitions, and collaborations. Please feel free to reach out using the information below or the contact form.</p>
+                    
+                    <div class="contact-details">
+                        <div class="contact-item">
+                            <h4>Studio</h4>
+                            <p>123 Artist Quarter<br>
+                            Berlin, Germany 10178<br>
+                            Open by appointment only</p>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <h4>Email</h4>
+                            <p><a href="mailto:irina@irinavinokur.art">irina@irinavinokur.art</a></p>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <h4>Phone</h4>
+                            <p>+49 30 1234 5678</p>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <h4>Social Media</h4>
+                            <p>
+                                <a href="#" target="_blank">Instagram</a> |
+                                <a href="#" target="_blank">Facebook</a> |
+                                <a href="#" target="_blank">LinkedIn</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="contact-form">
+                    <h3>Send a Message</h3>
+                    <form id="contactForm">
+                        <label for="name">Name *</label>
+                        <input type="text" id="name" name="name" required>
+                        
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                        
+                        <label for="subject">Subject</label>
+                        <select id="subject" name="subject">
+                            <option value="general">General Inquiry</option>
+                            <option value="commission">Commission Request</option>
+                            <option value="exhibition">Exhibition Opportunity</option>
+                            <option value="press">Press Inquiry</option>
+                            <option value="purchase">Purchase Inquiry</option>
+                            <option value="collaboration">Collaboration Proposal</option>
+                        </select>
+                        
+                        <label for="message">Message *</label>
+                        <textarea id="message" name="message" rows="6" required placeholder="Please describe your inquiry..."></textarea>
+                        
+                        <button type="submit">Send Message</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="gallery-representation">
+                <h3>Gallery Representation</h3>
+                <div class="gallery-grid">
+                    <div class="gallery-item">
+                        <h4>Gallery Aurora</h4>
+                        <p>Berlin, Germany<br>
+                        <a href="mailto:contact@galleryaurora.de">contact@galleryaurora.de</a><br>
+                        +49 30 2345 6789</p>
+                    </div>
+                    
+                    <div class="gallery-item">
+                        <h4>Contemporary Space</h4>
+                        <p>New York, USA<br>
+                        <a href="mailto:info@contemporaryspace.com">info@contemporaryspace.com</a><br>
+                        +1 212 345 6789</p>
+                    </div>
+                    
+                    <div class="gallery-item">
+                        <h4>Modern Art Collective</h4>
+                        <p>London, UK<br>
+                        <a href="mailto:hello@modernartcollective.uk">hello@modernartcollective.uk</a><br>
+                        +44 20 7123 4567</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="studio-image">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Cdefs%3E%3ClinearGradient id='studio' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23f8f9fa;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23e9ecef;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23studio)' /%3E%3Crect x='50' y='50' width='200' height='150' fill='%23fd79a8' opacity='0.7'/%3E%3Crect x='300' y='80' width='150' height='100' fill='%2374b9ff' opacity='0.7'/%3E%3Crect x='500' y='60' width='180' height='120' fill='%23fdcb6e' opacity='0.7'/%3E%3Crect x='100' y='250' width='600' height='20' fill='%236c5ce7' opacity='0.5'/%3E%3Ctext x='50%25' y='85%25' font-family='serif' font-size='24' fill='%235a6c7d' text-anchor='middle' dy='.3em'%3EStudio Space%3C/text%3E%3C/svg%3E" alt="Artist Studio" class="studio-photo">
+                <p class="studio-caption">My Berlin studio space where creativity flows and new works come to life.</p>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Irina Vinokur. All rights reserved.</p>
+    </footer>
+    <script src="/static/script.js"></script>
+</body>
+</html>
