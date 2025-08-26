@@ -59,10 +59,18 @@ background_tasks_status: Dict[str, Dict[str, Any]] = {}
 async def get_current_data_status_from_db() -> Dict[str, Any]:
     """Получает актуальный статус данных из БД."""
     try:
-        if not (db.cosmos_client or db.sql_connection): # Проверка, что соединение было инициализировано
+        # Check database connection based on the type
+        if db.db_type == "cosmosdb_mongo" and db.mongo_client:
+            db_connected = True
+        elif db.db_type in ["sqlite", "postgresql"] and db.sql_connection:
+            db_connected = True
+        else:
+            db_connected = False
+            
+        if not db_connected: # Проверка, что соединение было инициализировано
              logger.warning("Attempting to get data status from DB, but DB connection is not active. Trying to connect.")
              await db.connect() # Попытка подключиться, если еще не подключены
-             if not (db.cosmos_client or db.sql_connection):
+             if not (db.mongo_client or db.sql_connection):
                   raise ConnectionError("Database connection could not be established.")
 
         # Получаем общую статистику, где может быть информация о количестве объектов
@@ -203,7 +211,7 @@ async def get_galaxies_data_from_db(
 ):
     """Получить отфильтрованные данные галактик напрямую из базы данных."""
     try:
-        if not (db.cosmos_client or db.sql_connection):
+        if not (db.mongo_client or db.sql_connection):
              raise HTTPException(status_code=503, detail="Database not connected. Run preprocessing pipeline or check connection.")
 
         # Формируем фильтры для db.get_astronomical_objects
@@ -297,7 +305,7 @@ async def get_galaxies_data_from_db(
 async def get_heavy_astronomical_statistics():
     """Получить агрегированную статистику по всем астрономическим данным в БД."""
     try:
-        if not (db.cosmos_client or db.sql_connection):
+        if not (db.mongo_client or db.sql_connection):
              raise HTTPException(status_code=503, detail="Database not connected. Run preprocessing pipeline or check connection.")
 
         stats = await db.get_statistics()
@@ -360,7 +368,7 @@ async def run_custom_data_processing(task_id: str, config: dict):
         background_tasks_status[task_id]["progress"] = 10
         
         # Убедимся, что БД подключена
-        if not (db.cosmos_client or db.sql_connection):
+        if not (db.mongo_client or db.sql_connection):
             await db.connect()
 
         # process_astronomical_data_entrypoint из utils.data_processing

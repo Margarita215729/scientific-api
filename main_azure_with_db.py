@@ -8,11 +8,12 @@ import logging
 from contextlib import asynccontextmanager
 import pandas as pd
 import asyncio
+from datetime import datetime
 
 # Import existing API modules
 from api.astro_catalog_api import router as astro_router
 from api.ads_api import router as ads_router
-from api.ml_analysis_api import router as ml_router
+from api.ml_models import router as ml_router
 from api.heavy_api import router as heavy_api_router
 
 # Import database
@@ -168,17 +169,24 @@ async def health_check():
     """Comprehensive health check including database connectivity."""
     db_status = "unknown"
     db_type_info = "N/A"
-    if db.cosmos_client or db.sql_connection: # Check if connection was successful
-        try:
-            # Try a simple query to the DB, for example, getting statistics
-            await db.get_statistics() # This method should already be working
-            db_status = "connected"
-            db_type_info = db.db_type
-        except Exception as e_db_check:
-            db_status = f"error_during_check: {str(e_db_check)[:100]}..."
-            logger.warning(f"Health check: DB connection seems to exist, but test query failed: {e_db_check}", exc_info=True)
-    else:
-        db_status = "not_connected_or_initialized_yet"
+    
+    try:
+        # Check database connection based on the type
+        if db.db_type == "cosmosdb_mongo" and db.mongo_client:
+            db_status = "connected_mongo"
+            db_type_info = "CosmosDB MongoDB API"
+        elif db.db_type in ["sqlite", "postgresql"] and db.sql_connection:
+            db_status = "connected_sql"
+            db_type_info = db.db_type.upper()
+        else:
+            db_status = "not_connected"
+            
+        # Try a simple query to the DB
+        stats = await db.get_statistics()
+        if stats:
+            db_status += "_tested"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
     
     return {
         "status": "healthy" if db_status == "connected" else "degraded",
