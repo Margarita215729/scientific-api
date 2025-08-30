@@ -1,28 +1,18 @@
 {
   "version": 2,
-  "name": "scientific-data-platform",
-  "builds": [
-    {
-      "src": "api/main.py",
-      "use": "@vercel/python"
+  "functions": {
+    "api/vercel_main.py": {
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/main.py"
+      "dest": "/api/vercel_main.py"
     },
     {
       "src": "/(.*)",
-      "dest": "/api/main.py"
+      "dest": "/api/vercel_main.py"
     }
-  ],
-  "env": {
-    "PYTHON_VERSION": "3.9"
-  },
-  "functions": {
-    "api/main.py": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
