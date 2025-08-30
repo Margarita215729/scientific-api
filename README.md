@@ -1,361 +1,265 @@
-# Scientific API - Astronomical Data Processing Platform
+# Scientific Data Management Platform
 
-## 🌟 Обзор проекта
+A comprehensive web platform for collecting, cleaning, analyzing, and visualizing scientific data, with a focus on astronomical datasets.
 
-Scientific API - это современная платформа для обработки и анализа астрономических данных, развернутая в Azure Cloud с использованием Docker контейнеров и Bicep templates.
+## 🚀 Features
 
-### ✨ Основные возможности
+### ✅ Completed Features
 
-- 🔭 **Астрономические данные**: Доступ к каталогам SDSS, DESI, DES, Euclid
-- 🤖 **Машинное обучение**: ML-готовые датасеты и модели
-- 📊 **Анализ данных**: Статистический анализ и визуализация
-- 🔍 **Поиск публикаций**: Интеграция с NASA ADS
-- 🌐 **Web интерфейс**: Современный UI для работы с данными
-- 🔒 **Безопасность**: HTTPS, VNet интеграция, отключенные FTP/SCM
+1. **Database Integration**
+   - MongoDB Atlas connection configured and tested
+   - Support for multiple database backends (MongoDB, PostgreSQL, SQLite)
+   - Automatic database initialization and schema management
+   - SSL certificate handling for secure connections
 
-## 🏗️ Архитектура
+2. **Intuitive Web Interface**
+   - Modern dashboard with step-by-step workflow
+   - Interactive tooltips and help text for all features
+   - Responsive design with Tailwind CSS
+   - Real-time activity tracking
+   - Modal dialogs for complex operations
 
-### Azure Resources
-- **Web App**: `scientific-api` (Canada Central)
-- **Docker Image**: `index.docker.io/gretk/scientific-api-app-image:scientific-api`
-- **Cosmos DB**: `scientific-api-server` / `scientific-data`
-- **VNet**: `vnet-euoxdfir` / `subnet-nwivqmzl`
-- **URL**: https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net
+3. **Comprehensive Data Collection Module**
+   - **API Integrations**:
+     - SDSS (Sloan Digital Sky Survey) - Galaxy and stellar data
+     - NASA Exoplanet Archive - Confirmed exoplanet data
+     - ADS (Astrophysics Data System) - Research papers
+     - **arXiv** - Latest research preprints
+     - **SerpAPI** - Web search and Google Scholar
+   - **File Upload**: CSV, JSON, FITS, XML, Parquet with drag-and-drop
+   - **Web Scraping**: Configurable scraping capabilities
+   - **Database Connections**: Import from external databases
+   - Pre-built templates for common datasets
+   - Automatic format detection and validation
 
-### Технологический стек
-- **Backend**: FastAPI (Python)
-- **Frontend**: HTML/CSS/JavaScript
-- **Database**: Azure Cosmos DB (MongoDB API)
-- **Container**: Docker
-- **Infrastructure**: Azure Bicep/ARM Templates
-- **CI/CD**: Azure CLI scripts
+4. **Advanced Data Cleaning Module**
+   - Intelligent issue detection:
+     - Missing values analysis with multiple strategies
+     - Duplicate detection and removal
+     - Outlier identification using IQR method
+     - Data type consistency checking
+     - Value range validation for scientific data
+   - **Cleaning Operations**:
+     - Handle missing values (drop, fill with mean/median/mode, interpolate)
+     - Remove duplicates with configurable rules
+     - Normalize values for ML readiness
+     - Remove or cap outliers
+     - Standardize formats and data types
+   - Preview functionality before applying changes
+   - Health score calculation (0-100)
+   - Backup creation before cleaning
 
-## 🚀 Быстрый старт
+5. **Robust API Architecture**
+   - RESTful endpoints for all operations
+   - Background task processing for long operations
+   - Comprehensive error handling and logging
+   - Integration testing endpoints
+   - Real-time status monitoring
+   - Template management system
 
-### Предварительные требования
+### 🔄 Next Steps
 
+- Machine learning analysis modules (clustering, classification, regression)
+- Advanced visualization capabilities (interactive charts, 3D plots)
+- User authentication system (OAuth, JWT tokens)
+- Production optimization (caching, rate limiting, monitoring)
+
+## 🛠️ Technology Stack
+
+- **Backend**: FastAPI (Python 3.13)
+- **Database**: MongoDB Atlas (with Cosmos DB support)
+- **Frontend**: HTML5, Tailwind CSS, JavaScript
+- **Data Processing**: Pandas, NumPy, Astropy
+- **Async Operations**: Motor, httpx, aiohttp
+
+## 📋 Prerequisites
+
+- Python 3.8+
+- MongoDB Atlas account or local MongoDB instance
+- API keys for external services (optional):
+  - ADS (Astrophysics Data System)
+  - NASA APIs
+  - Google APIs
+  - SERPAPI
+
+## 🔧 Installation
+
+1. Clone the repository:
 ```bash
-# Azure CLI
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
-# Docker
-sudo apt-get update
-sudo apt-get install docker.io
-
-# Python 3.8+
-python3 --version
-```
-
-### Развертывание
-
-#### Вариант 1: Bicep Template (рекомендуется)
-```bash
-# Клонируем репозиторий
-git clone <repository-url>
+git clone https://github.com/Margarita215729/scientific-api.git
 cd scientific-api
-
-# Логинимся в Azure
-az login
-
-# Развертываем с помощью Bicep
-chmod +x deploy_azure_bicep.sh
-./deploy_azure_bicep.sh
 ```
 
-#### Вариант 2: ARM Template
+2. Create virtual environment:
 ```bash
-chmod +x deploy_azure_webapp.sh
-./deploy_azure_webapp.sh
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-#### Вариант 3: Container Instances
+3. Install dependencies:
 ```bash
-chmod +x deploy_azure.sh
-./deploy_azure.sh
-```
-
-### Локальная разработка
-
-```bash
-# Создаем виртуальное окружение
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Устанавливаем зависимости
 pip install -r requirements.txt
-
-# Запускаем локально
-python main.py
 ```
 
-### Docker
+4. Configure environment variables:
+```bash
+# Copy the example config
+cp config.env.example config.env
+
+# Edit config.env with your settings:
+# - MongoDB connection string
+# - API keys
+# - Other configuration
+```
+
+## 🚀 Running the Application
+
+### Development Mode
 
 ```bash
-# Сборка образа
-docker build -t scientific-api .
+# Using the start script
+python start_server.py
 
-# Запуск контейнера
-docker run -p 8000:8000 scientific-api
-
-# Или используем docker-compose
-docker-compose up
+# Or directly with uvicorn
+uvicorn api.index:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 📁 Структура проекта
+### Production Mode
+
+```bash
+# Using Docker
+docker-compose up -d
+
+# Or with gunicorn
+gunicorn api.index:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
+
+## 📚 API Documentation
+
+Once running, access the interactive API documentation at:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## 🎯 Usage Examples
+
+### Import Data from Templates
+
+```javascript
+// Import arXiv papers
+fetch('/api/data/import-template', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({template: 'arxiv_papers'})
+})
+
+// Import from Google Scholar via SerpAPI
+fetch('/api/data/import-template', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({template: 'google_scholar'})
+})
+
+// Import SDSS galaxy data
+fetch('/api/data/import-template', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({template: 'sdss_galaxies'})
+})
+```
+
+### Upload and Clean Data
+
+```javascript
+// Upload CSV/JSON files
+const formData = new FormData();
+formData.append('files', fileInput.files[0]);
+
+const uploadResponse = await fetch('/api/data/upload', {
+    method: 'POST',
+    body: formData
+});
+
+// Analyze data quality issues
+const issuesResponse = await fetch(`/api/cleaning/analyze-issues?dataset_id=${datasetId}`);
+const issues = await issuesResponse.json();
+
+// Apply cleaning operations
+const cleaningResponse = await fetch('/api/cleaning/apply-cleaning', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+        dataset_id: datasetId,
+        operations: [
+            {operation: 'remove_duplicates'},
+            {operation: 'handle_missing', strategy: 'fill_median'},
+            {operation: 'normalize_values'}
+        ]
+    })
+});
+```
+
+### Test All Integrations
+
+```javascript
+// Check status of all data sources
+fetch('/api/test/integrations')
+    .then(response => response.json())
+    .then(data => {
+        console.log(`Working sources: ${data.working_sources}/${data.total_sources}`);
+        console.log('Recommendations:', data.recommendations);
+    });
+```
+
+## 🏗️ Project Structure
 
 ```
 scientific-api/
-├── api/                          # API модули
-│   ├── heavy_api.py             # Тяжелые вычисления
-│   ├── cosmos_db_config.py      # Конфигурация Cosmos DB
-│   └── logging_setup.py         # Настройка логирования
-├── utils/                        # Утилиты
-│   ├── ads_astronomy_real.py    # NASA ADS интеграция
-│   └── astronomy_catalogs.py    # Астрономические каталоги
-├── ui/                          # Web интерфейс
-│   ├── index.html              # Главная страница
-│   └── ads.html                # ADS поиск
-├── database/                    # База данных
-│   └── schema.sql              # SQL схема
-├── azure-webapp-bicep.bicep    # Bicep template
-├── azure-webapp-config.json    # ARM template
-├── deploy_azure_bicep.sh       # Скрипт развертывания (Bicep)
-├── deploy_azure_webapp.sh      # Скрипт развертывания (ARM)
-├── docker-compose.yml          # Docker Compose
-├── Dockerfile                  # Docker образ
-├── main.py                     # Главный файл приложения
-├── azure.env                   # Переменные окружения
-└── requirements.txt            # Python зависимости
+├── api/                    # API endpoints and routers
+│   ├── index.py           # Main FastAPI app
+│   ├── heavy_api.py       # Scientific data endpoints
+│   ├── data_management.py # Data import/export
+│   └── config.py          # Configuration management
+├── database/              # Database configuration
+│   ├── config.py         # Database connection manager
+│   └── schema.sql        # SQL schema definitions
+├── utils/                 # Utility modules
+│   ├── data_preprocessor.py  # Data preprocessing
+│   └── data_processing.py    # Data transformations
+├── ui/                    # Frontend files
+│   ├── dashboard.html     # Main dashboard
+│   └── dashboard.js       # Frontend logic
+├── requirements.txt       # Python dependencies
+└── README.md             # This file
 ```
 
-## 🔧 Конфигурация
+## 🔒 Security Considerations
 
-### Переменные окружения
+- Environment variables for sensitive data
+- CORS configuration for API access
+- Input validation on all endpoints
+- Rate limiting for external API calls
 
-Основные переменные находятся в `azure.env`:
+## 🤝 Contributing
 
-```bash
-# Azure Configuration
-AZURE_SUBSCRIPTION_ID=8e746503-c0c0-4535-a05d-49e544196e3f
-AZURE_RESOURCE_GROUP=scientific-api
-AZURE_APP_NAME=scientific-api
-AZURE_APP_URL=https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-# Cosmos DB
-COSMOS_DB_ACCOUNT=scientific-api-server
-COSMOS_DB_DATABASE=scientific-data
+## 📝 License
 
-# Network
-VNET_NAME=vnet-euoxdfir
-SUBNET_NAME=subnet-nwivqmzl
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-### API ключи (устанавливаются отдельно)
+## 🙏 Acknowledgments
 
-```bash
-az webapp config appsettings set \
-    --resource-group scientific-api \
-    --name scientific-api \
-    --settings \
-        GOOGLE_CLIENT_ID="your_client_id" \
-        GOOGLE_CLIENT_SECRET="your_client_secret" \
-        ADSABS_TOKEN="your_adsabs_token" \
-        SERPAPI_KEY="your_serpapi_key" \
-        COSMOS_DB_KEY="your_cosmos_db_key"
-```
+- NASA Open APIs for astronomical data
+- SDSS for galaxy survey data
+- ADS for research paper access
+- MongoDB Atlas for database hosting
 
-## 📚 API Документация
+## 📞 Support
 
-### Основные эндпоинты
-
-| Эндпоинт | Описание |
-|----------|----------|
-| `/ping` | Health check |
-| `/docs` | Swagger документация |
-| `/api/astro/galaxies` | Данные галактик |
-| `/api/astro/statistics` | Статистика |
-| `/api/ads/search` | Поиск публикаций |
-| `/api/ml/prepare-dataset` | Подготовка ML датасета |
-
-### Примеры использования
-
-```bash
-# Health check
-curl https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net/ping
-
-# Получить данные галактик
-curl "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net/api/astro/galaxies?limit=10&min_z=0.1"
-
-# Поиск в ADS
-curl "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net/api/ads/search?query=galaxy+formation"
-```
-
-## 🔒 Безопасность
-
-### Настройки безопасности
-- ✅ HTTPS Only (принудительно)
-- ✅ TLS 1.2+ (минимальная версия)
-- ✅ FTP доступ отключен
-- ✅ SCM доступ отключен
-- ✅ VNet интеграция включена
-- ✅ Managed Identity для Key Vault
-
-### Сетевая безопасность
-- VNet: `vnet-euoxdfir`
-- Subnet: `subnet-nwivqmzl`
-- Private DNS: `privatelink.mongo.cosmos.azure.com`
-
-## 📊 Мониторинг и управление
-
-### Команды управления
-
-```bash
-# Просмотр логов
-az webapp log tail --resource-group scientific-api --name scientific-api
-
-# Перезапуск приложения
-az webapp restart --resource-group scientific-api --name scientific-api
-
-# Просмотр конфигурации
-az webapp config show --resource-group scientific-api --name scientific-api
-
-# Масштабирование
-az webapp config set --resource-group scientific-api --name scientific-api --number-of-workers 2
-```
-
-### Метрики и алерты
-
-Доступны через Azure Portal:
-- CPU utilization
-- Memory usage
-- Request count
-- Response time
-- Error rate
-
-## 🧪 Тестирование
-
-### Локальное тестирование
-
-```bash
-# Запуск тестов
-python -m pytest tests/
-
-# Проверка health endpoint
-curl http://localhost:8000/ping
-
-# Проверка API
-curl http://localhost:8000/api/astro/status
-```
-
-### Production тестирование
-
-```bash
-# Health check
-curl -f https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net/ping
-
-# Load testing
-ab -n 100 -c 10 https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net/ping
-```
-
-## 🔄 CI/CD
-
-### Автоматическое развертывание
-
-1. **GitHub Actions** (рекомендуется)
-2. **Azure DevOps Pipelines**
-3. **Manual deployment** с помощью скриптов
-
-### Workflow
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Azure
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Deploy to Azure
-        run: ./deploy_azure_bicep.sh
-```
-
-## 📈 Производительность
-
-### Оптимизации
-- Docker multi-stage builds
-- Кэширование в Cosmos DB
-- Асинхронные операции
-- Connection pooling
-- Gzip compression
-
-### Масштабирование
-- Horizontal scaling (multiple instances)
-- Auto-scaling rules
-- Load balancing
-- CDN для статических файлов
-
-## 🐛 Устранение неполадок
-
-### Частые проблемы
-
-1. **Container не запускается**
-   ```bash
-   az webapp log tail --resource-group scientific-api --name scientific-api
-   ```
-
-2. **Ошибки подключения к Cosmos DB**
-   ```bash
-   az webapp config appsettings list --resource-group scientific-api --name scientific-api
-   ```
-
-3. **Проблемы с VNet**
-   ```bash
-   az network vnet subnet show --resource-group scientific-api --vnet-name vnet-euoxdfir --name subnet-nwivqmzl
-   ```
-
-### Логи и диагностика
-
-```bash
-# Application logs
-az webapp log tail --resource-group scientific-api --name scientific-api
-
-# Deployment logs
-az webapp deployment log list --resource-group scientific-api --name scientific-api
-
-# Container logs
-az webapp log download --resource-group scientific-api --name scientific-api
-```
-
-## 🤝 Участие в разработке
-
-### Требования для разработки
-- Python 3.8+
-- Docker
-- Azure CLI
-- Git
-
-### Процесс разработки
-1. Fork репозитория
-2. Создайте feature branch
-3. Внесите изменения
-4. Добавьте тесты
-5. Создайте Pull Request
-
-## 📄 Лицензия
-
-MIT License - см. файл LICENSE
-
-## 📞 Поддержка
-
-- **Issues**: GitHub Issues
-- **Documentation**: `/docs` endpoint
-- **API Reference**: Swagger UI
-
----
-
-**Статус проекта**: ✅ Production Ready
-
-**Версия**: 2.0.0 
+For issues and questions:
+- Create an issue on GitHub
+- Contact: margarita215729@gmail.com

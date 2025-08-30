@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Data Management Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .step-wizard {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            position: relative;
+        }
+        .step.active {
+            color: #4f46e5;
+        }
+        .step.completed {
+            color: #10b981;
+        }
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #e5e7eb;
+            z-index: -1;
+        }
+        .step:last-child::after {
+            display: none;
+        }
+        .step.completed::after {
+            background: #10b981;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-flask text-indigo-600 text-2xl mr-3"></i>
+                    <h1 class="text-xl font-semibold text-gray-900">Scientific Data Platform</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="flex items-center">
+                        <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Welcome Section -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome to Your Data Hub</h2>
+            <p class="text-gray-600">Manage, clean, and analyze your scientific data with ease. Follow our guided workflow or jump to any section.</p>
+        </div>
+
+        <!-- Step Wizard -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="step-wizard">
+                <div class="step completed">
+                    <i class="fas fa-check-circle text-3xl mb-2"></i>
+                    <p class="font-semibold">1. Collect Data</p>
+                    <p class="text-sm text-gray-600">Import from various sources</p>
+                </div>
+                <div class="step active">
+                    <i class="fas fa-broom text-3xl mb-2"></i>
+                    <p class="font-semibold">2. Clean Data</p>
+                    <p class="text-sm text-gray-600">Remove errors and duplicates</p>
+                </div>
+                <div class="step">
+                    <i class="fas fa-chart-line text-3xl mb-2"></i>
+                    <p class="font-semibold">3. Analyze</p>
+                    <p class="text-sm text-gray-600">Apply ML models</p>
+                </div>
+                <div class="step">
+                    <i class="fas fa-eye text-3xl mb-2"></i>
+                    <p class="font-semibold">4. Visualize</p>
+                    <p class="text-sm text-gray-600">Create charts and reports</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <!-- Data Collection Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6 card-hover transition-all cursor-pointer" onclick="showDataCollection()">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-blue-100 rounded-lg">
+                        <i class="fas fa-cloud-download-alt text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="tooltip">
+                        <i class="fas fa-info-circle text-gray-400"></i>
+                        <span class="tooltiptext">Import data from APIs, files, web scraping, or databases. Supports multiple formats including CSV, JSON, FITS, and more.</span>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Collect Data</h3>
+                <p class="text-gray-600 text-sm mb-4">Import from multiple sources</p>
+                <div class="flex items-center text-blue-600 hover:text-blue-700">
+                    <span class="text-sm font-medium">Start collecting</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Data Cleaning Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6 card-hover transition-all cursor-pointer" onclick="showDataCleaning()">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <i class="fas fa-filter text-green-600 text-xl"></i>
+                    </div>
+                    <div class="tooltip">
+                        <i class="fas fa-info-circle text-gray-400"></i>
+                        <span class="tooltiptext">Clean your data by removing duplicates, handling missing values, standardizing formats, and validating entries.</span>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Clean & Transform</h3>
+                <p class="text-gray-600 text-sm mb-4">Prepare data for analysis</p>
+                <div class="flex items-center text-green-600 hover:text-green-700">
+                    <span class="text-sm font-medium">Clean data</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Analysis Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6 card-hover transition-all cursor-pointer" onclick="showAnalysis()">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-purple-100 rounded-lg">
+                        <i class="fas fa-brain text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="tooltip">
+                        <i class="fas fa-info-circle text-gray-400"></i>
+                        <span class="tooltiptext">Apply machine learning models, statistical analysis, and pattern recognition to gain insights from your data.</span>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Analyze</h3>
+                <p class="text-gray-600 text-sm mb-4">Apply ML & statistics</p>
+                <div class="flex items-center text-purple-600 hover:text-purple-700">
+                    <span class="text-sm font-medium">Start analysis</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+
+            <!-- Visualization Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6 card-hover transition-all cursor-pointer" onclick="showVisualization()">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-yellow-100 rounded-lg">
+                        <i class="fas fa-chart-bar text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="tooltip">
+                        <i class="fas fa-info-circle text-gray-400"></i>
+                        <span class="tooltiptext">Create interactive charts, dashboards, and reports. Export results in various formats for presentations.</span>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Visualize</h3>
+                <p class="text-gray-600 text-sm mb-4">Create charts & reports</p>
+                <div class="flex items-center text-yellow-600 hover:text-yellow-700">
+                    <span class="text-sm font-medium">View insights</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between py-3 border-b">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-green-100 rounded-lg mr-3">
+                            <i class="fas fa-check text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Data imported successfully</p>
+                            <p class="text-xs text-gray-500">SDSS Galaxy Catalog - 1.2M records</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-500">5 minutes ago</span>
+                </div>
+                <div class="flex items-center justify-between py-3 border-b">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-blue-100 rounded-lg mr-3">
+                            <i class="fas fa-sync text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Data cleaning in progress</p>
+                            <p class="text-xs text-gray-500">Removing duplicates and normalizing values</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-500">10 minutes ago</span>
+                </div>
+                <div class="flex items-center justify-between py-3">
+                    <div class="flex items-center">
+                        <div class="p-2 bg-purple-100 rounded-lg mr-3">
+                            <i class="fas fa-chart-line text-purple-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Analysis completed</p>
+                            <p class="text-xs text-gray-500">Redshift distribution analysis</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-500">1 hour ago</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Container -->
+    <div id="modalContainer"></div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
