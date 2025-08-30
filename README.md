@@ -260,6 +260,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📞 Support
 
+**Версия**: 2.0.0
+
+📊 **[Подробный статус проекта](PROJECT_STATUS.md)** | 🗓️ **[Дорожная карта развития](ROADMAP.md)** 
+=======
 For issues and questions:
 - Create an issue on GitHub
 - Contact: margarita215729@gmail.com
