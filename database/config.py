@@ -24,8 +24,8 @@ class DatabaseConfig:
         self.db_type = os.getenv("DB_TYPE", "sqlite") 
         
         # MongoDB / CosmosDB (MongoDB API) settings
-        self.mongodb_connection_string = os.getenv("AZURE_COSMOS_CONNECTION_STRING") # Используем эту переменную
-        self.mongodb_database_name = os.getenv("COSMOS_DATABASE_NAME", "scientificdata") # Имя БД из строки подключения или по умолчанию
+        self.mongodb_connection_string = os.getenv("MONGODB_URI") or os.getenv("AZURE_COSMOS_CONNECTION_STRING") # Support both
+        self.mongodb_database_name = os.getenv("MONGODB_DATABASE_NAME") or os.getenv("COSMOS_DATABASE_NAME", "scientificdata")
                                                                                        # В вашем случае это 'scientific-data'
 
         # SQL settings (PostgreSQL or SQLite)
@@ -43,22 +43,60 @@ class DatabaseConfig:
             "search_history", "ml_analysis_results", "api_cache", "system_statistics"
         ]
         
-        if self.db_type == "cosmosdb_mongo" and not MOTOR_AVAILABLE:
-            logger.error("DB_TYPE is set to cosmosdb_mongo, but motor library is not available.")
+        # Handle both cosmosdb and cosmosdb_mongo types
+        if self.db_type == "cosmosdb_mongo":
+            self.db_type = "cosmosdb"  # Normalize the type name
+            
+        if self.db_type in ["cosmosdb", "mongodb"] and not MOTOR_AVAILABLE:
+            logger.error("DB_TYPE is set to MongoDB/CosmosDB, but motor library is not available.")
             raise ImportError("motor library is required for MongoDB API interaction.")
-        if self.db_type == "cosmosdb_mongo" and not self.mongodb_connection_string:
-            logger.error("DB_TYPE is cosmosdb_mongo, but AZURE_COSMOS_CONNECTION_STRING is not set.")
-            raise ValueError("AZURE_COSMOS_CONNECTION_STRING must be set for MongoDB API.")
+        if self.db_type in ["cosmosdb", "mongodb"] and not self.mongodb_connection_string:
+            logger.error("DB_TYPE is MongoDB/CosmosDB, but connection string is not set.")
+            raise ValueError("MongoDB connection string must be set.")
 
     async def connect(self):
-        if self.db_type == "cosmosdb_mongo":
+        if self.db_type in ["cosmosdb", "mongodb"]:
             if not MOTOR_AVAILABLE: raise ImportError("motor library not available.")
             if not self.mongodb_connection_string: 
                 raise ValueError("MongoDB connection string (AZURE_COSMOS_CONNECTION_STRING) is not set.")
             
             logger.info(f"[DB CONNECT MONGO] Connecting to MongoDB API at {self.mongodb_connection_string.split('@')[-1]}...") # Скрываем часть с кредами
             try:
-                self.mongo_client = motor.motor_asyncio.AsyncIOMotorClient(self.mongodb_connection_string)
+                # Parse Cosmos DB connection string
+                # Format: AccountEndpoint=https://...;AccountKey=...;
+                if 'AccountEndpoint=' in self.mongodb_connection_string:
+                    # This is a Cosmos DB connection string
+                    conn_parts = {}
+                    for part in self.mongodb_connection_string.split(';'):
+                        if '=' in part:
+                            key, value = part.split('=', 1)
+                            conn_parts[key] = value
+                    
+                    # Convert to MongoDB connection string format
+                    endpoint = conn_parts.get('AccountEndpoint', '').replace('https://', '').replace(':443/', '')
+                    account_key = conn_parts.get('AccountKey', '')
+                    account_name = endpoint.split('.')[0]
+                    
+                    # Cosmos DB MongoDB connection string format
+                    # Use the documents.azure.com endpoint for MongoDB API
+                    mongo_conn_str = f"mongodb://{account_name}:{account_key}@{account_name}.documents.azure.com:10255/?ssl=true&retrywrites=false&maxIdleTimeMS=120000&appName=@{account_name}@"
+                    logger.info(f"[DB CONNECT MONGO] Using MongoDB connection string format for Cosmos DB")
+                    logger.info(f"[DB CONNECT MONGO] Account: {account_name}")
+                    self.mongo_client = motor.motor_asyncio.AsyncIOMotorClient(mongo_conn_str)
+                else:
+                    # Standard MongoDB connection string
+                    # Add SSL bypass for MongoDB Atlas
+                    import ssl
+                    import certifi
+                    
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    
+                    self.mongo_client = motor.motor_asyncio.AsyncIOMotorClient(
+                        self.mongodb_connection_string,
+                        tlsAllowInvalidCertificates=True
+                    )
                 # Проверка соединения (опционально, но полезно)
                 await self.mongo_client.admin.command('ping') 
                 # Имя БД может быть частью строки подключения, но мы также берем его из COSMOS_DATABASE_NAME
@@ -81,10 +119,12 @@ class DatabaseConfig:
                 
                 self.mongodb_database_name = actual_db_name # Обновляем, если извлекли из URI
                 self.mongo_db = self.mongo_client[self.mongodb_database_name]
+                self.cosmos_client = self.mongo_client  # Set alias
                 logger.info(f"[DB CONNECT MONGO] Connected to MongoDB. Database: '{self.mongodb_database_name}'.")
             except Exception as e:
                 logger.error(f"Failed to connect to MongoDB: {e}", exc_info=True)
                 self.mongo_client = None # Сбрасываем, если ошибка
+                self.cosmos_client = None # Сбрасываем alias
                 self.mongo_db = None
                 raise
         elif self.db_type == "postgresql":
@@ -124,14 +164,14 @@ class DatabaseConfig:
             logger.info(f"[DB DISCONNECT {self.db_type.upper()}] Connection closed.")
 
     async def init_database(self):
-        if not ((self.db_type == "cosmosdb_mongo" and self.mongo_db) or 
-                  (self.db_type != "cosmosdb_mongo" and self.sql_connection)):
+        if not ((self.db_type in ["cosmosdb", "mongodb"] and self.mongo_db is not None) or 
+                  (self.db_type not in ["cosmosdb", "mongodb"] and self.sql_connection)):
             await self.connect()
         
         logger.info(f"[DB INIT {self.db_type.upper()}] Starting database initialization/verification...")
 
-        if self.db_type == "cosmosdb_mongo":
-            if not self.mongo_db: 
+        if self.db_type in ["cosmosdb", "mongodb"]:
+            if self.mongo_db is None: 
                 logger.error("[DB INIT MONGO] MongoDB client not initialized.")
                 return
             try:
@@ -176,7 +216,7 @@ class DatabaseConfig:
 
     # ----- MongoDB Specific Methods (Examples) -----
     async def mongo_insert_one(self, collection_name: str, document: Dict) -> Optional[Any]:
-        if self.db_type != "cosmosdb_mongo" or not self.mongo_db: return None
+        if self.db_type not in ["cosmosdb", "mongodb"] or self.mongo_db is None: return None
         try:
             collection = self.mongo_db[collection_name]
             result = await collection.insert_one(document)
@@ -187,7 +227,7 @@ class DatabaseConfig:
             return None
 
     async def mongo_find_one(self, collection_name: str, query: Dict) -> Optional[Dict]:
-        if self.db_type != "cosmosdb_mongo" or not self.mongo_db: return None
+        if self.db_type not in ["cosmosdb", "mongodb"] or self.mongo_db is None: return None
         try:
             collection = self.mongo_db[collection_name]
             document = await collection.find_one(query)
@@ -197,7 +237,7 @@ class DatabaseConfig:
             return None
 
     async def mongo_find(self, collection_name: str, query: Dict, limit: int = 0) -> List[Dict]:
-        if self.db_type != "cosmosdb_mongo" or not self.mongo_db: return []
+        if self.db_type not in ["cosmosdb", "mongodb"] or self.mongo_db is None: return []
         try:
             collection = self.mongo_db[collection_name]
             cursor = collection.find(query)
@@ -209,7 +249,7 @@ class DatabaseConfig:
             return []
     
     async def mongo_update_one(self, collection_name: str, query: Dict, update_doc: Dict, upsert: bool = False) -> int:
-        if self.db_type != "cosmosdb_mongo" or not self.mongo_db: return 0
+        if self.db_type not in ["cosmosdb", "mongodb"] or self.mongo_db is None: return 0
         try:
             collection = self.mongo_db[collection_name]
             result = await collection.update_one(query, {"$set": update_doc}, upsert=upsert)
@@ -220,7 +260,7 @@ class DatabaseConfig:
             return 0
 
     async def mongo_delete_one(self, collection_name: str, query: Dict) -> int:
-        if self.db_type != "cosmosdb_mongo" or not self.mongo_db: return 0
+        if self.db_type not in ["cosmosdb", "mongodb"] or self.mongo_db is None: return 0
         try:
             collection = self.mongo_db[collection_name]
             result = await collection.delete_one(query)
@@ -259,7 +299,7 @@ class DatabaseConfig:
     # ----- Adapt existing high-level methods -----
     async def get_astronomical_objects(self, limit: int = 100, object_type: Optional[str] = None, catalog_source: Optional[str] = None) -> List[Dict]:
         collection_name = "astronomical_objects"
-        if self.db_type == "cosmosdb_mongo":
+        if self.db_type in ["cosmosdb", "mongodb"]:
             query = {}
             if object_type: query["object_type"] = object_type
             if catalog_source: query["catalog_source"] = catalog_source 
@@ -284,7 +324,7 @@ class DatabaseConfig:
 
     async def get_statistics(self) -> Dict[str, Any]:
         collection_name = "system_statistics"
-        if self.db_type == "cosmosdb_mongo":
+        if self.db_type in ["cosmosdb", "mongodb"]:
             stats_list = await self.mongo_find(collection_name, {})
             statistics = {}
             for item in stats_list:
@@ -306,7 +346,7 @@ class DatabaseConfig:
         collection_name = "api_cache"
         expires_at = datetime.utcnow() + timedelta(hours=expires_in_hours)
 
-        if self.db_type == "cosmosdb_mongo":
+        if self.db_type in ["cosmosdb", "mongodb"]:
             # MongoDB TTL indexes лучше настраивать на уровне коллекции.
             # Здесь мы сохраняем expires_at для ручной проверки или если TTL индекс настроен на это поле.
             document = {
@@ -331,7 +371,7 @@ class DatabaseConfig:
         
     async def get_cached_response(self, cache_key: str) -> Optional[Dict]:
         collection_name = "api_cache"
-        if self.db_type == "cosmosdb_mongo":
+        if self.db_type in ["cosmosdb", "mongodb"]:
             document = await self.mongo_find_one(collection_name, {"_id": cache_key})
             if document and document.get('expires_at') > datetime.utcnow():
                 return document.get('data')
@@ -355,7 +395,7 @@ class DatabaseConfig:
         collection_name = "search_history"
         timestamp = datetime.utcnow()
 
-        if self.db_type == "cosmosdb_mongo":
+        if self.db_type in ["cosmosdb", "mongodb"]:
             document = {
                 "user_id": user_id, # Может быть частью shard key, если коллекция так настроена
                 "search_type": search_type,

@@ -68,7 +68,7 @@ try:
         logger.error(f"Error setting up Jinja2 templates: {e}")
         raise
 
-    # Import lightweight router
+    # Import routers
     try:
         from api.heavy_api import router as heavy_router
         app.include_router(heavy_router)
@@ -76,26 +76,53 @@ try:
     except Exception as e:
         logger.error(f"Error loading heavy_router: {e}", exc_info=True)
         # Fallback to light router
-        # try:
-        #     from api.light_api import router as light_router
-        #     app.include_router(light_router)
-        #     logger.info("Successfully loaded light_router as fallback")
-        # except Exception as e2:
-        #     logger.error(f"Error loading light_router fallback: {e2}", exc_info=True)
-        #     raise
-        raise # Re-raise the exception if heavy_router fails to load
+        try:
+            from api.light_api import router as light_router
+            app.include_router(light_router)
+            logger.info("Successfully loaded light_router as fallback")
+        except Exception as e2:
+            logger.error(f"Error loading light_router fallback: {e2}", exc_info=True)
+            raise
+
+    # Include data management routes
+    try:
+        from api.data_management import router as data_router
+        app.include_router(data_router)
+        logger.info("Successfully loaded data management router")
+    except Exception as e:
+        logger.warning(f"Failed to load data management router: {e}")
+
+    # Include test integration routes
+    try:
+        from api.test_integrations import router as test_router
+        app.include_router(test_router)
+        logger.info("Successfully loaded test integration router")
+    except Exception as e:
+        logger.warning(f"Failed to load test integration router: {e}")
+
+    # Include data cleaning routes
+    try:
+        from api.data_cleaning import router as cleaning_router
+        app.include_router(cleaning_router)
+        logger.info("Successfully loaded data cleaning router")
+    except Exception as e:
+        logger.warning(f"Failed to load data cleaning router: {e}")
 
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request):
         try:
-            logger.info(f"Attempting to render index.html from templates directory: {ui_dir}")
-            return templates.TemplateResponse("index.html", {"request": request})
+            logger.info(f"Attempting to render dashboard.html from templates directory: {ui_dir}")
+            return templates.TemplateResponse("dashboard.html", {"request": request})
         except Exception as e:
-            logger.error(f"Error rendering index.html: {e}", exc_info=True)
-            return JSONResponse(
-                status_code=500,
-                content={"message": "Error rendering page", "error": str(e), "ui_dir": str(ui_dir)}
-            )
+            logger.error(f"Error rendering dashboard.html: {e}", exc_info=True)
+            # Fallback to index.html if dashboard doesn't exist
+            try:
+                return templates.TemplateResponse("index.html", {"request": request})
+            except:
+                return JSONResponse(
+                    status_code=500,
+                    content={"message": "Error rendering page", "error": str(e), "ui_dir": str(ui_dir)}
+                )
 
     @app.get("/api")
     async def api_info():

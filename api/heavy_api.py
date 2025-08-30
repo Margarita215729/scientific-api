@@ -15,9 +15,30 @@ from datetime import datetime
 import json
 
 # Database and Preprocessor
-from database.config import db # Используем глобальный экземпляр db
-from utils.data_preprocessor import AstronomicalDataPreprocessor # Для запуска пайплайна
-from utils.data_processing import DataProcessor, process_astronomical_data_entrypoint # Для кастомной обработки
+try:
+    from database.config import db # Используем глобальный экземпляр db
+    DB_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Database module not available: {e}")
+    db = None
+    DB_AVAILABLE = False
+
+try:
+    from utils.data_preprocessor import AstronomicalDataPreprocessor # Для запуска пайплайна
+    PREPROCESSOR_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Data preprocessor not available: {e}")
+    AstronomicalDataPreprocessor = None
+    PREPROCESSOR_AVAILABLE = False
+
+try:
+    from utils.data_processing import DataProcessor, process_astronomical_data_entrypoint # Для кастомной обработки
+    PROCESSING_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Data processing module not available: {e}")
+    DataProcessor = None
+    process_astronomical_data_entrypoint = None
+    PROCESSING_AVAILABLE = False
 
 # HTTP client (если нужен для проксирования на другие тяжелые сервисы, пока не используется)
 # try:
@@ -58,6 +79,9 @@ background_tasks_status: Dict[str, Dict[str, Any]] = {}
 
 async def get_current_data_status_from_db() -> Dict[str, Any]:
     """Получает актуальный статус данных из БД."""
+    if not DB_AVAILABLE:
+        return {"status": "database_not_available", "message": "Database dependencies not loaded", "total_objects": -1}
+
     try:
         if not (db.cosmos_client or db.sql_connection): # Проверка, что соединение было инициализировано
              logger.warning("Attempting to get data status from DB, but DB connection is not active. Trying to connect.")
@@ -111,25 +135,36 @@ async def get_current_data_status_from_db() -> Dict[str, Any]:
 @router.get("/ping", tags=["Heavy System"])
 async def ping_heavy():
     """Health check for the heavy compute service itself."""
-    db_status_info = await get_current_data_status_from_db()
+    db_status_info = await get_current_data_status_from_db() if DB_AVAILABLE else {"status": "database_not_available", "message": "Database dependencies not loaded"}
     return {
-        "status": "ok",
-        "message": "Heavy compute service is operational.",
+        "status": "ok" if all([HEAVY_LIBS_AVAILABLE, DB_AVAILABLE, PREPROCESSOR_AVAILABLE, PROCESSING_AVAILABLE]) else "partial",
+        "message": "Heavy compute service is operational." if all([HEAVY_LIBS_AVAILABLE, DB_AVAILABLE, PREPROCESSOR_AVAILABLE, PROCESSING_AVAILABLE]) else "Some dependencies not available - running in limited mode",
         "service_type": "heavy-compute-integrated-db",
         "version": "2.1.0",
-        "heavy_libs_available": HEAVY_LIBS_AVAILABLE,
+        "dependencies_status": {
+            "heavy_libs_available": HEAVY_LIBS_AVAILABLE,
+            "database_available": DB_AVAILABLE,
+            "preprocessor_available": PREPROCESSOR_AVAILABLE,
+            "processing_available": PROCESSING_AVAILABLE
+        },
         "database_integration_status": db_status_info
     }
 
 @router.post("/astro/trigger-preprocessing", tags=["Heavy Astronomical Data"])
 async def trigger_full_preprocessing(background_tasks: BackgroundTasks):
     """Запускает полный пайплайн предварительной обработки всех астрономических каталогов."""
+    if not all([PREPROCESSOR_AVAILABLE, DB_AVAILABLE]):
+        raise HTTPException(
+            status_code=503,
+            detail="Preprocessing not available - missing dependencies (data_preprocessor or database)"
+        )
+
     import uuid
     task_id = str(uuid.uuid4())
-    
+
     # Запускаем AstronomicalDataPreprocessor.preprocess_all_catalogs в фоновой задаче
     background_tasks.add_task(run_astronomical_data_pipeline, task_id)
-    
+
     background_tasks_status[task_id] = {
         "status": "started",
         "task_type": "full_catalog_preprocessing",
@@ -138,7 +173,7 @@ async def trigger_full_preprocessing(background_tasks: BackgroundTasks):
         "started_at": datetime.utcnow().isoformat(),
         "details": "This task will download, process, and store data for all configured catalogs into the database."
     }
-    
+
     logger.info(f"Task {task_id} (full_catalog_preprocessing) started.")
     return {
         "task_id": task_id,
@@ -202,6 +237,9 @@ async def get_galaxies_data_from_db(
     max_dec: Optional[float] = Query(None, description="Maximum DEC (degrees)")
 ):
     """Получить отфильтрованные данные галактик напрямую из базы данных."""
+    if not DB_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Database dependencies not available")
+
     try:
         if not (db.cosmos_client or db.sql_connection):
              raise HTTPException(status_code=503, detail="Database not connected. Run preprocessing pipeline or check connection.")
@@ -270,7 +308,7 @@ async def get_galaxies_data_from_db(
         for gal in galaxies:
             processed_gal = dict(gal) # Копируем, чтобы не изменять исходный объект Row
             for key, value in processed_gal.items():
-                if isinstance(value, (float, int)) and (np.isnan(value) or np.isinf(value)):
+                if HEAVY_LIBS_AVAILABLE and isinstance(value, (float, int)) and (np.isnan(value) or np.isinf(value)):
                     processed_gal[key] = None
                 # Опционально: преобразование числовых строк в числа, если это не делает драйвер БД
                 # elif isinstance(value, str):
@@ -326,9 +364,15 @@ async def process_custom_astronomical_data_endpoint(
     config: Dict[str, Any] # Конфигурация передается в теле POST запроса
 ):
     """Запускает кастомную обработку астрономических данных (clean, normalize, feature_engineering)."""
+    if not all([PROCESSING_AVAILABLE, DB_AVAILABLE]):
+        raise HTTPException(
+            status_code=503,
+            detail="Data processing not available - missing dependencies (data_processing or database)"
+        )
+
     import uuid
     task_id = str(uuid.uuid4())
-    
+
     # Валидация config может быть добавлена здесь с использованием Pydantic модели
     processing_type = config.get("processing_type")
     if not processing_type or processing_type not in ["clean", "normalize", "feature_engineering"]:
