@@ -9,9 +9,10 @@ import pandas as pd
 import numpy as np
 import os
 import json
+import logging
 from typing import Optional, List, Dict, Any
 
-# Импортируем функции из модуля astronomy_catalogs
+# Import functions from astronomy_catalogs module
 from utils.astronomy_catalogs_real import (
     AstronomicalDataProcessor,
     get_catalog_info,
@@ -27,17 +28,20 @@ from api.cosmos_db_config import (
     cache_statistics
 )
 
+# Logger setup
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # Фоновая задача для загрузки всех каталогов
 running_jobs = {}
 
 async def background_download_all_catalogs(job_id: str):
-    """Фоновая задача для загрузки всех каталогов."""
+    """Background task for downloading all catalogs."""
     try:
         running_jobs[job_id] = {"status": "running", "progress": 0}
         
-        # Создаем процессор данных
+        # Create data processor
         processor = AstronomicalDataProcessor()
         catalogs = []
         
@@ -69,7 +73,7 @@ async def background_download_all_catalogs(job_id: str):
         except Exception as e:
             catalogs.append({"name": "DES Y6", "status": "error", "error": str(e)})
         
-        # Объединяем данные в единый набор
+        # Merge data into unified dataset
         try:
             catalog_paths = [cat["path"] for cat in catalogs if cat["status"] == "success"]
             merged_path = await processor.merge_catalogs(catalog_paths)
@@ -77,7 +81,7 @@ async def background_download_all_catalogs(job_id: str):
         except Exception as e:
             catalogs.append({"name": "Merged Dataset", "status": "error", "error": str(e)})
         
-        # Завершаем задачу
+        # Complete task
         running_jobs[job_id] = {
             "status": "completed", 
             "progress": 100,
@@ -89,28 +93,28 @@ async def background_download_all_catalogs(job_id: str):
             "error": str(e)
         }
 
-@router.post("/download", summary="Запустить загрузку всех астрономических каталогов в фоновом режиме")
+@router.post("/download", summary="Start background download of all astronomical catalogs")
 async def start_download(background_tasks: BackgroundTasks):
     """
-    Запускает фоновую загрузку всех поддерживаемых астрономических каталогов:
+    Starts background download of all supported astronomical catalogs:
     - SDSS DR17 spectroscopic catalog
     - Euclid Q1 MER Final catalog
     - DESI DR1 (2025) ELG clustering catalog
     - DES Year 6 (DES DR2/Y6 Gold) catalog
     
-    Возвращает ID задачи, по которому можно отслеживать прогресс загрузки.
+    Returns task ID for progress tracking.
     """
     import uuid
     import asyncio
     job_id = str(uuid.uuid4())
     
-    # Запускаем асинхронную задачу
+    # Start async task
     asyncio.create_task(background_download_all_catalogs(job_id))
     
     return {
         "job_id": job_id,
         "status": "started",
-        "message": "Загрузка астрономических каталогов запущена"
+        "message": "Astronomical catalog download started"
     }
 
 @router.get("/download/{job_id}", summary="Получить статус загрузки каталогов")
@@ -148,6 +152,8 @@ async def get_galaxies(
     max_ra: Optional[float] = Query(None, description="Максимальное прямое восхождение (RA)"),
     min_dec: Optional[float] = Query(None, description="Минимальное склонение (DEC)"),
     max_dec: Optional[float] = Query(None, description="Максимальное склонение (DEC)"),
+    min_magnitude: Optional[float] = Query(None, description="Минимальная звездная величина"),
+    max_magnitude: Optional[float] = Query(None, description="Максимальная звездная величина"),
     format: str = Query("json", description="Формат ответа (json или csv)")
 ):
     """
@@ -169,21 +175,32 @@ async def get_galaxies(
         "max_ra": max_ra,
         "min_dec": min_dec,
         "max_dec": max_dec,
+        "min_magnitude": min_magnitude,
+        "max_magnitude": max_magnitude,
         "limit": limit
     }
     
     try:
-        # Проверяем кэш сначала
-        cached_data = await get_cached_catalog_data(source or "all", filters)
-        if cached_data:
-            galaxies = cached_data
-        else:
-            # Получаем отфильтрованные данные
-            result = await fetch_filtered_galaxies(filters, include_ml_features=False)
-            galaxies = result["galaxies"]
-            
-            # Кэшируем результат
-            await cache_catalog_data(source or "all", filters, galaxies)
+        # Skip cache for now to test core functionality
+        # Debug logging
+        logger.info(f"API galaxies request: source={source}, limit={limit}, min_z={min_z}, max_z={max_z}")
+        logger.info(f"Calling fetch_filtered_galaxies with: catalog={source or 'sdss'}, min_z={min_z if min_z is not None else 0.0}, max_z={max_z if max_z is not None else 5.0}")
+        
+        # Получаем отфильтрованные данные
+        galaxies = await fetch_filtered_galaxies(
+            catalog=source or "sdss",
+            min_z=min_z if min_z is not None else 0.0,
+            max_z=max_z if max_z is not None else 5.0,
+            min_magnitude=min_magnitude if min_magnitude is not None else 10.0,
+            max_magnitude=max_magnitude if max_magnitude is not None else 30.0,
+            limit=limit,
+            object_type="galaxy"
+        )
+        
+        logger.info(f"Got {len(galaxies)} galaxies from fetch_filtered_galaxies")
+        
+        # Skip caching for now
+        # await cache_catalog_data(source or "all", filters, galaxies)
         
         # Возвращаем в запрошенном формате
         if format.lower() == "csv":
@@ -199,7 +216,7 @@ async def get_galaxies(
             "count": len(galaxies),
             "source": source or "all",
             "galaxies": galaxies,
-            "processing_time": result.get("processing_time", 0)
+            "processing_time": 0  # Will be calculated in future updates
         }
     
     except Exception as e:
