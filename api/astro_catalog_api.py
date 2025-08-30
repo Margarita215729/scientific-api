@@ -12,7 +12,7 @@ import json
 import logging
 from typing import Optional, List, Dict, Any
 
-# Импортируем функции из модуля astronomy_catalogs
+# Import functions from astronomy_catalogs module
 from utils.astronomy_catalogs_real import (
     AstronomicalDataProcessor,
     get_catalog_info,
@@ -37,11 +37,11 @@ router = APIRouter()
 running_jobs = {}
 
 async def background_download_all_catalogs(job_id: str):
-    """Фоновая задача для загрузки всех каталогов."""
+    """Background task for downloading all catalogs."""
     try:
         running_jobs[job_id] = {"status": "running", "progress": 0}
         
-        # Создаем процессор данных
+        # Create data processor
         processor = AstronomicalDataProcessor()
         catalogs = []
         
@@ -73,7 +73,7 @@ async def background_download_all_catalogs(job_id: str):
         except Exception as e:
             catalogs.append({"name": "DES Y6", "status": "error", "error": str(e)})
         
-        # Объединяем данные в единый набор
+        # Merge data into unified dataset
         try:
             catalog_paths = [cat["path"] for cat in catalogs if cat["status"] == "success"]
             merged_path = await processor.merge_catalogs(catalog_paths)
@@ -81,7 +81,7 @@ async def background_download_all_catalogs(job_id: str):
         except Exception as e:
             catalogs.append({"name": "Merged Dataset", "status": "error", "error": str(e)})
         
-        # Завершаем задачу
+        # Complete task
         running_jobs[job_id] = {
             "status": "completed", 
             "progress": 100,
@@ -93,28 +93,28 @@ async def background_download_all_catalogs(job_id: str):
             "error": str(e)
         }
 
-@router.post("/download", summary="Запустить загрузку всех астрономических каталогов в фоновом режиме")
+@router.post("/download", summary="Start background download of all astronomical catalogs")
 async def start_download(background_tasks: BackgroundTasks):
     """
-    Запускает фоновую загрузку всех поддерживаемых астрономических каталогов:
+    Starts background download of all supported astronomical catalogs:
     - SDSS DR17 spectroscopic catalog
     - Euclid Q1 MER Final catalog
     - DESI DR1 (2025) ELG clustering catalog
     - DES Year 6 (DES DR2/Y6 Gold) catalog
     
-    Возвращает ID задачи, по которому можно отслеживать прогресс загрузки.
+    Returns task ID for progress tracking.
     """
     import uuid
     import asyncio
     job_id = str(uuid.uuid4())
     
-    # Запускаем асинхронную задачу
+    # Start async task
     asyncio.create_task(background_download_all_catalogs(job_id))
     
     return {
         "job_id": job_id,
         "status": "started",
-        "message": "Загрузка астрономических каталогов запущена"
+        "message": "Astronomical catalog download started"
     }
 
 @router.get("/download/{job_id}", summary="Получить статус загрузки каталогов")

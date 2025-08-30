@@ -1,64 +1,79 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADS Поиск - Scientific API</title>
+    <title>ADS Search - Scientific API</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <header>
-        <h1>📚 ADS Поиск</h1>
+        <h1>📚 ADS Search</h1>
         <nav>
-            <a href="/">Главная</a>
-            <a href="/static/ads.html">ADS Поиск</a>
-            <a href="/static/astro.html">Астроданные</a>
-            <a href="/docs" target="_blank">API Документация</a>
+            <a href="/">Home</a>
+            <a href="/static/ads.html" class="active">ADS Search</a>
+            <a href="/static/astro.html">Astronomical Data</a>
+            <a href="/docs" target="_blank">API Documentation</a>
         </nav>
     </header>
     <main>
-        <section id="ads-search-form">
-            <h2>Поиск публикаций в NASA ADS</h2>
+        <section id="search-section">
+            <h2>Search Astronomical Publications</h2>
+            <p>Search NASA Astrophysics Data System (ADS) for scientific publications related to astronomical objects and research.</p>
+            
             <form id="searchFormAds">
-                <label for="adsQuery">Поисковый запрос:</label>
-                <input type="text" id="adsQuery" name="query" required placeholder="например, galaxy formation">
-                
-                <label for="searchType">Тип поиска:</label>
-                <select id="searchType" name="search_type">
-                    <option value="general" selected>Общий</option>
-                    <option value="object">По объекту</option>
-                    <option value="coordinates">По координатам</option>
-                    <option value="catalog">По каталогу</option>
-                </select>
-
-                <div id="objectParams" class="params-group" style="display:none;">
-                    <label for="objectName">Название объекта:</label>
-                    <input type="text" id="objectName" name="object_name" placeholder="например, M31">
+                <div class="form-group">
+                    <label for="searchType">Search Type:</label>
+                    <select id="searchType" name="search_type" required>
+                        <option value="general">General Search</option>
+                        <option value="object">Search by Object Name</option>
+                        <option value="coordinates">Search by Coordinates</option>
+                        <option value="catalog">Search by Catalog</option>
+                    </select>
                 </div>
 
-                <div id="coordsParams" class="params-group" style="display:none;">
-                    <label for="ra">RA (прямое восхождение):</label>
-                    <input type="number" step="any" id="ra" name="ra" placeholder="градусы">
-                    <label for="dec">DEC (склонение):</label>
-                    <input type="number" step="any" id="dec" name="dec" placeholder="градусы">
-                    <label for="radius">Радиус поиска (градусы):</label>
-                    <input type="number" step="any" id="radius" name="radius" value="0.1">
+                <div class="form-group">
+                    <label for="adsQuery">Search Query:</label>
+                    <input type="text" id="adsQuery" name="query" placeholder="Enter search terms..." required>
                 </div>
 
-                <div id="catalogParams" class="params-group" style="display:none;">
-                    <label for="catalogName">Название каталога:</label>
-                    <input type="text" id="catalogName" name="catalog_name" placeholder="например, SDSS">
+                <div id="objectParams" class="form-group" style="display: none;">
+                    <label for="objectName">Object Name:</label>
+                    <input type="text" id="objectName" name="object_name" placeholder="e.g., M31, NGC 5128">
                 </div>
 
-                <label for="maxResults">Макс. результатов:</label>
-                <input type="number" id="maxResults" name="max_results" value="20" min="1" max="100">
-                
-                <button type="submit">Искать</button>
+                <div id="coordsParams" class="form-group" style="display: none;">
+                    <label for="ra">Right Ascension (RA):</label>
+                    <input type="number" id="ra" name="ra" step="0.000001" placeholder="RA in degrees">
+                    <label for="dec">Declination (DEC):</label>
+                    <input type="number" id="dec" name="dec" step="0.000001" placeholder="DEC in degrees">
+                    <label for="radius">Search Radius (degrees):</label>
+                    <input type="number" id="radius" name="radius" step="0.01" value="0.1" min="0.01" max="10">
+                </div>
+
+                <div id="catalogParams" class="form-group" style="display: none;">
+                    <label for="catalogName">Catalog Name:</label>
+                    <select id="catalogName" name="catalog_name">
+                        <option value="SDSS">SDSS</option>
+                        <option value="DESI">DESI</option>
+                        <option value="DES">DES</option>
+                        <option value="Euclid">Euclid</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="maxResults">Maximum Results:</label>
+                    <input type="number" id="maxResults" name="max_results" value="20" min="1" max="100">
+                </div>
+
+                <button type="submit">Search Publications</button>
             </form>
         </section>
-        <section id="ads-results">
-            <h2>Результаты поиска</h2>
-            <div id="loadingAds" style="display:none;">Загрузка...</div>
+
+        <section id="results-section">
+            <div id="loadingAds" style="display: none;">
+                <p>Searching ADS...</p>
+            </div>
             <div id="adsResultsContainer"></div>
         </section>
     </main>
