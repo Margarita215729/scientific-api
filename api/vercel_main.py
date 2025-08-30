@@ -3,17 +3,9 @@ Lightweight entry point for Vercel deployment
 """
 
 import os
-import sys
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-
-# Set environment variables for Vercel
-os.environ.setdefault('DB_TYPE', 'mongodb')
-os.environ.setdefault('DEBUG', 'false')
-os.environ.setdefault('LOG_LEVEL', 'INFO')
 
 # Create minimal FastAPI app
 app = FastAPI(
@@ -31,20 +23,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Setup templates
-ui_dir = Path(__file__).parent.parent / "ui"
-templates = Jinja2Templates(directory=str(ui_dir))
-
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    """Serve the main dashboard"""
-    try:
-        return templates.TemplateResponse("dashboard.html", {"request": request})
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"message": "Error rendering dashboard", "error": str(e)}
-        )
+@app.get("/")
+async def root():
+    """Welcome page"""
+    return {
+        "message": "Welcome to Scientific Data Platform",
+        "status": "online",
+        "version": "1.0.0",
+        "features": [
+            "Data Collection from arXiv, SerpAPI, ADS, NASA, SDSS",
+            "Advanced Data Cleaning & Transformation",
+            "API Integrations Testing",
+            "Interactive Dashboard"
+        ],
+        "endpoints": {
+            "ping": "/ping",
+            "api_info": "/api",
+            "status": "/api/status",
+            "docs": "/docs"
+        }
+    }
 
 @app.get("/ping")
 async def ping():
@@ -72,18 +70,20 @@ async def api_info():
         }
     }
 
-# Include lightweight routers only for Vercel
-try:
-    from api.test_integrations import router as test_router
-    app.include_router(test_router)
-except ImportError:
-    pass
-
-try:
-    from api.light_api import router as light_router
-    app.include_router(light_router)
-except ImportError:
-    pass
+# Simple API endpoints for Vercel (no heavy imports)
+@app.get("/api/test/simple")
+async def test_simple():
+    """Simple test endpoint"""
+    return {
+        "status": "ok",
+        "platform": "Vercel",
+        "timestamp": "2025-08-30",
+        "integrations": {
+            "arxiv": "Available",
+            "serpapi": "Available" if os.getenv("SERPAPI_KEY") else "Not configured",
+            "ads": "Available" if os.getenv("ADSABS_TOKEN") else "Not configured"
+        }
+    }
 
 # Basic data endpoints without heavy dependencies
 @app.get("/api/status")
