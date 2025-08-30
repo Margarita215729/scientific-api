@@ -1,18 +1,28 @@
 {
   "version": 2,
+  "name": "scientific-data-platform",
   "builds": [
     {
-      "src": "main.py",
+      "src": "api/main.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/main.py"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/main.py"
+      "dest": "/api/main.py"
     }
   ],
   "env": {
-    "AZURE_BACKEND_URL": "https://scientific-api-e3a7a5dph6b3axa3.canadacentral-01.azurewebsites.net"
+    "PYTHON_VERSION": "3.9"
+  },
+  "functions": {
+    "api/main.py": {
+      "maxDuration": 30
+    }
   }
-} 
+}
