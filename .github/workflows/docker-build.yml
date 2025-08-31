@@ -43,6 +43,7 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
+          scientific-api
           type=ref,event=branch
           type=ref,event=pr
           type=semver,pattern={{version}}
