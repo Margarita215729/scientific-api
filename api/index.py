@@ -108,6 +108,22 @@ try:
     except Exception as e:
         logger.warning(f"Failed to load data cleaning router: {e}")
 
+    # Include research API routes
+    try:
+        from api.research_api import router as research_router
+        app.include_router(research_router, prefix="/api/research")
+        logger.info("Successfully loaded research API router")
+    except Exception as e:
+        logger.warning(f"Failed to load research API router: {e}")
+
+    # Include ML models router
+    try:
+        from api.ml_models import router as ml_router
+        app.include_router(ml_router, prefix="/api/ml")
+        logger.info("Successfully loaded ML models router")
+    except Exception as e:
+        logger.warning(f"Failed to load ML models router: {e}")
+
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request):
         try:

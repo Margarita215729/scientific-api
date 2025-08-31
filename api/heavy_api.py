@@ -14,6 +14,10 @@ import asyncio
 from datetime import datetime
 import json
 
+# Configure logging first
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Database and Preprocessor
 try:
     from database.config import db # Используем глобальный экземпляр db
@@ -58,9 +62,7 @@ except ImportError:
     np = None
     HEAVY_LIBS_AVAILABLE = False
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Logger already configured above
 
 # Data directories (могут быть менее релевантны, если все в БД)
 # DATA_DIR = "galaxy_data"

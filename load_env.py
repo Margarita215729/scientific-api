@@ -5,8 +5,8 @@ Load environment variables from config.env file
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from config.env
-config_file = os.path.join(os.path.dirname(__file__), 'config.env')
+# Load environment variables from env.config
+config_file = os.path.join(os.path.dirname(__file__), 'env.config')
 if os.path.exists(config_file):
     load_dotenv(config_file)
     print(f"Loaded environment variables from {config_file}")
