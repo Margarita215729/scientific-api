@@ -71,10 +71,10 @@ fi
 
 # Configure container settings
 echo "🐳 Configuring container settings..."
-az webapp config container set \
-    --name $APP_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --container-image-name "gretk/scientific-api-app-image:scientific-api"
+        az webapp config container set \
+            --name $APP_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --container-image-name "cutypie/scientific-api-app-image:scientific-api"
 
 echo "✅ Container settings configured"
 
