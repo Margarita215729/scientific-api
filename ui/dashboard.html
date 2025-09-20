@@ -6,6 +6,7 @@
     <title>Scientific Data Management Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="responsive-enhancements.css" rel="stylesheet">
     <style>
         .tooltip {
             position: relative;
@@ -72,22 +73,22 @@
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
-    <nav class="bg-white shadow-sm border-b">
+    <nav class="bg-white shadow-sm border-b" role="navigation" aria-label="Main navigation">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <i class="fas fa-flask text-indigo-600 text-2xl mr-3"></i>
+                    <i class="fas fa-flask text-indigo-600 text-2xl mr-3" aria-hidden="true"></i>
                     <h1 class="text-xl font-semibold text-gray-900">Scientific Data Platform</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-bell"></i>
+                    <button class="text-gray-500 hover:text-gray-700" aria-label="View notifications">
+                        <i class="fas fa-bell" aria-hidden="true"></i>
                     </button>
-                    <button class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-cog"></i>
+                    <button class="text-gray-500 hover:text-gray-700" aria-label="Open settings">
+                        <i class="fas fa-cog" aria-hidden="true"></i>
                     </button>
                     <div class="flex items-center">
-                        <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User">
+                        <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="User profile picture">
                     </div>
                 </div>
             </div>
@@ -95,43 +96,51 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8" role="main">
         <!-- Welcome Section -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome to Your Data Hub</h2>
+        <section class="bg-white rounded-lg shadow-sm p-6 mb-6" aria-labelledby="welcome-title">
+            <h2 id="welcome-title" class="text-2xl font-bold text-gray-900 mb-2">Welcome to Your Data Hub</h2>
             <p class="text-gray-600">Manage, clean, and analyze your scientific data with ease. Follow our guided workflow or jump to any section.</p>
-        </div>
+        </section>
 
         <!-- Step Wizard -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div class="step-wizard">
-                <div class="step completed">
-                    <i class="fas fa-check-circle text-3xl mb-2"></i>
+        <section class="bg-white rounded-lg shadow-sm p-6 mb-6" aria-labelledby="workflow-title">
+            <h2 id="workflow-title" class="sr-only">Data Processing Workflow</h2>
+            <div class="step-wizard" role="progressbar" aria-label="Data processing steps" aria-valuenow="1" aria-valuemin="1" aria-valuemax="4">
+                <div class="step completed" role="button" tabindex="0" aria-label="Step 1: Collect Data - Completed">
+                    <i class="fas fa-check-circle text-3xl mb-2" aria-hidden="true"></i>
                     <p class="font-semibold">1. Collect Data</p>
                     <p class="text-sm text-gray-600">Import from various sources</p>
                 </div>
-                <div class="step active">
-                    <i class="fas fa-broom text-3xl mb-2"></i>
+                <div class="step active" role="button" tabindex="0" aria-label="Step 2: Clean Data - Current step">
+                    <i class="fas fa-broom text-3xl mb-2" aria-hidden="true"></i>
                     <p class="font-semibold">2. Clean Data</p>
                     <p class="text-sm text-gray-600">Remove errors and duplicates</p>
                 </div>
-                <div class="step">
-                    <i class="fas fa-chart-line text-3xl mb-2"></i>
+                <div class="step" role="button" tabindex="0" aria-label="Step 3: Analyze">
+                    <i class="fas fa-chart-line text-3xl mb-2" aria-hidden="true"></i>
                     <p class="font-semibold">3. Analyze</p>
                     <p class="text-sm text-gray-600">Apply ML models</p>
                 </div>
-                <div class="step">
-                    <i class="fas fa-eye text-3xl mb-2"></i>
+                <div class="step" role="button" tabindex="0" aria-label="Step 4: Visualize">
+                    <i class="fas fa-eye text-3xl mb-2" aria-hidden="true"></i>
                     <p class="font-semibold">4. Visualize</p>
                     <p class="text-sm text-gray-600">Create charts and reports</p>
                 </div>
             </div>
-        </div>
+        </section>
 
         <!-- Action Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" aria-labelledby="actions-title">
+            <h2 id="actions-title" class="sr-only">Quick Actions</h2>
+            
             <!-- Data Collection Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6 card-hover transition-all cursor-pointer" onclick="showDataCollection()">
+            <div class="bg-white rounded-lg shadow-sm p-6 card-hover transition-all cursor-pointer" 
+                 onclick="showDataCollection()" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Collect data from various sources"
+                 onkeypress="if(event.key==='Enter'||event.key===' ') showDataCollection()">
                 <div class="flex items-center justify-between mb-4">
                     <div class="p-3 bg-blue-100 rounded-lg">
                         <i class="fas fa-cloud-download-alt text-blue-600 text-xl"></i>
@@ -254,6 +263,10 @@
     <!-- Modal Container -->
     <div id="modalContainer"></div>
 
+    <!-- Modular JavaScript for better performance -->
+    <script src="modal-utils.js"></script>
+    <script src="notification-utils.js"></script>
+    <script src="data-collection.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>
