@@ -1,0 +1,26 @@
+# Potential Well Configuration
+# Simple 2D rectangular potential well without perturbations
+
+# Model type
+model_type: "potential_well"
+
+# Grid configuration
+grid:
+  x_range: [-2.0, 2.0]
+  y_range: [-2.0, 2.0]
+  Nx: 50
+  Ny: 50
+
+# Model parameters
+parameters:
+  well_depth: 10.0  # Depth of the potential well
+  well_width: 1.0  # Width of the square well
+  barrier_height: 20.0  # Barrier height outside the well
+  perturbations: null  # No perturbations
+  mass: 1.0
+  hbar: 1.0
+
+# Output configuration
+output_dir: "data/processed/quantum"
+output_filename: "potential_well_simple"
+save_hamiltonian: true

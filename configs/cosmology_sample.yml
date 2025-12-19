@@ -1,0 +1,35 @@
+# Cosmology Sample Configuration
+# Configuration for loading and preprocessing SDSS DR17 galaxy catalog sample
+
+# Data Source Configuration
+source: "sdss"  # Options: "sdss", "desi"
+catalog_type: "galaxy"  # Options: "galaxy", "quasar", "star"
+
+# File paths (relative to DATA_ROOT or absolute)
+# If null, uses default location: DATA_ROOT/raw/cosmology/{source}_dr{version}.parquet
+input_file: null
+
+# Output configuration
+output_dir: "data/processed/cosmology"
+output_filename: "sdss_sample_processed.parquet"
+output_format: "parquet"  # Options: "parquet", "csv"
+
+# Sampling parameters
+sample_size: 10000  # null for full catalog
+random_state: 42  # Random seed for reproducibility
+
+# Coordinate filters
+ra_range: [0.0, 60.0]  # Right Ascension range in degrees, null for no filter
+dec_range: [-10.0, 10.0]  # Declination range in degrees, null for no filter
+
+# Redshift filters
+z_range: [0.01, 0.3]  # Redshift range, null for no filter
+
+# Cosmological parameters (for distance calculations)
+cosmology:
+  H0: 70.0  # Hubble constant in km/s/Mpc
+  Omega_m: 0.3  # Matter density parameter
+  Omega_lambda: 0.7  # Dark energy density parameter
+
+# Processing options
+add_cartesian_coordinates: true  # Add x, y, z columns in Mpc

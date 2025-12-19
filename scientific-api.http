@@ -1,0 +1,119 @@
+@host = http://localhost:8000
+@contentType = application/json
+
+### 1. Проверка, что сервер жив (если сделаешь health-эндпоинт)
+GET {{host}}/health
+Accept: application/json
+
+
+### 2. Создать эксперимент
+
+POST {{host}}/api/v1/experiments/
+Content-Type: {{contentType}}
+Accept: application/json
+
+{
+  "name": "test_cosmo_quantum_experiment_1",
+  "description": "Пилотный эксперимент для ВКР: космология vs квантовая модель",
+  "systems": [
+    "cosmology",
+    "quantum"
+  ],
+  "datasets": {
+    "cosmology": {
+      "source": "SDSS_DR17",
+      "volume_config": {
+        "ra_min": 150.0,
+        "ra_max": 200.0,
+        "dec_min": -5.0,
+        "dec_max": 5.0,
+        "z_min": 0.02,
+        "z_max": 0.08
+      }
+    },
+    "quantum": {
+      "model": "2d_harmonic_oscillator",
+      "grid": {
+        "nx": 64,
+        "ny": 64
+      },
+      "potential_params": {
+        "omega_x": 1.0,
+        "omega_y": 1.0
+      }
+    }
+  },
+  "graph_params": {
+    "knn_k": 8,
+    "normalize_coordinates": true,
+    "normalize_weights": true
+  },
+  "features": {
+    "topology": true,
+    "spectral": true,
+    "embeddings": true,
+    "spectral_k": 100,
+    "embedding_dim": 64
+  },
+  "ml_tasks": {
+    "classification": true,
+    "similarity_regression": true,
+    "clustering": true
+  }
+}
+
+
+### 3. Получить информацию об эксперименте по ID
+
+GET {{host}}/api/v1/experiments/{{experiment_id}}
+Accept: application/json
+
+# Перед запуском запроса замени {{experiment_id}} на реальный ID,
+# вернувшийся из запроса "Создать эксперимент".
+
+
+### 4. Запустить полный пайплайн для эксперимента
+
+POST {{host}}/api/v1/experiments/{{experiment_id}}/run-full-pipeline
+Content-Type: {{contentType}}
+Accept: application/json
+
+{
+  "force_recompute": false
+}
+
+
+### 5. Получить агрегированные результаты эксперимента
+
+GET {{host}}/api/v1/experiments/{{experiment_id}}/results
+Accept: application/json
+
+
+### 6. Получить отдельные метрики (включая GW-расстояние)
+
+GET {{host}}/api/v1/experiments/{{experiment_id}}/metrics
+Accept: application/json
+
+
+### 7. Получить граф конкретной системы (космология или квантовая)
+
+GET {{host}}/api/v1/experiments/{{experiment_id}}/graphs/cosmology
+Accept: application/json
+
+###
+GET {{host}}/api/v1/experiments/{{experiment_id}}/graphs/quantum
+Accept: application/json
+
+
+### 8. Получить визуализацию (параметр plot_type)
+
+GET {{host}}/api/v1/experiments/{{experiment_id}}/plots/degree_distribution
+Accept: application/json
+
+###
+GET {{host}}/api/v1/experiments/{{experiment_id}}/plots/spectral_density
+Accept: application/json
+
+###
+GET {{host}}/api/v1/experiments/{{experiment_id}}/plots/embedding_2d
+Accept: application/json

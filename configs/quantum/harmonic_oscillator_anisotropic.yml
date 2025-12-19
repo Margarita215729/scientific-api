@@ -1,0 +1,26 @@
+# Anisotropic Harmonic Oscillator Configuration
+# 2D harmonic oscillator with different frequencies in x and y
+
+# Model type
+model_type: "harmonic_oscillator"
+
+# Grid configuration
+grid:
+  x_range: [-4.0, 4.0]
+  y_range: [-3.0, 3.0]
+  Nx: 60
+  Ny: 50
+
+# Model parameters (anisotropic: omega_x != omega_y)
+parameters:
+  omega_x: 1.5  # Higher frequency in x
+  omega_y: 0.8  # Lower frequency in y
+  x0: 0.0
+  y0: 0.0
+  mass: 1.0
+  hbar: 1.0
+
+# Output configuration
+output_dir: "data/processed/quantum"
+output_filename: "harmonic_oscillator_anisotropic"
+save_hamiltonian: true

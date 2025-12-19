@@ -1,27 +1,136 @@
 version: '3.8'
 
 services:
-  scientific-api:
-    image: index.docker.io/gretk/scientific-api-app-image:scientific-api
+  # MongoDB Service
+  mongodb:
+    image: mongo:7.0
+    container_name: scientific-api-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: scientific_api
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: scientific-api-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Scientific API Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scientific-api
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - ENVIRONMENT=production
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
-      - COSMOS_DB_DATABASE=scientific-data
-      - COSMOS_DB_ACCOUNT=scientific-api-server
-      - SUBNET_NAME=subnet-nwivqmzl
-      - VNET_NAME=vnet-euoxdfir
+      # MongoDB Configuration
+      MONGO_URI: mongodb://admin:password@mongodb:27017
+      MONGO_DB_NAME: scientific_api
+
+      # Redis Configuration
+      REDIS_URL: redis://redis:6379/0
+
+      # Application Settings
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+      DATA_ROOT: /app/data
+      APP_NAME: Scientific API
+      APP_VERSION: 0.1.0
+      API_V1_PREFIX: /api/v1
+
+      # ML Configuration
+      ML_RANDOM_SEED: 42
+      ML_N_JOBS: -1
+
+      # Python Configuration
+      PYTHONPATH: /app
+      PYTHONUNBUFFERED: 1
     volumes:
-      - galaxy_data:/app/galaxy_data
-    restart: unless-stopped
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./notebooks:/app/notebooks
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+  # Celery Worker (optional, for async tasks)
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scientific-api-celery-worker
+    restart: unless-stopped
+    command: celery -A app.core.celery worker --loglevel=info
+    environment:
+      # MongoDB Configuration
+      MONGO_URI: mongodb://admin:password@mongodb:27017
+      MONGO_DB_NAME: scientific_api
+
+      # Redis Configuration (Celery broker and backend)
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+
+      # Application Settings
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+      DATA_ROOT: /app/data
+
+      # ML Configuration
+      ML_RANDOM_SEED: 42
+      ML_N_JOBS: -1
+
+      # Python Configuration
+      PYTHONPATH: /app
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - with-celery
+
 volumes:
-  galaxy_data: 
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local

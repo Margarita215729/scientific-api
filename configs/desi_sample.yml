@@ -1,0 +1,34 @@
+# DESI DR2 Sample Configuration
+# Configuration for loading and preprocessing DESI DR2 galaxy catalog sample
+
+# Data Source Configuration
+source: "desi"  # Options: "sdss", "desi"
+catalog_type: "galaxy"  # Options: "galaxy", "quasar", "LRG", "ELG", "QSO"
+
+# File paths (relative to DATA_ROOT or absolute)
+input_file: null  # Uses default: DATA_ROOT/raw/cosmology/desi_dr2.parquet
+
+# Output configuration
+output_dir: "data/processed/cosmology"
+output_filename: "desi_sample_processed.parquet"
+output_format: "parquet"
+
+# Sampling parameters
+sample_size: 15000
+random_state: 42
+
+# Coordinate filters
+ra_range: [120.0, 180.0]  # Different sky region than SDSS sample
+dec_range: [-5.0, 15.0]
+
+# Redshift filters
+z_range: [0.02, 0.5]  # Slightly higher redshift range
+
+# Cosmological parameters
+cosmology:
+  H0: 70.0
+  Omega_m: 0.3
+  Omega_lambda: 0.7
+
+# Processing options
+add_cartesian_coordinates: true

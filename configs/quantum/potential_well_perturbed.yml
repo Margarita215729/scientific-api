@@ -1,0 +1,43 @@
+# Potential Well with Perturbations Configuration
+# 2D rectangular well with localized Gaussian perturbations
+
+# Model type
+model_type: "potential_well"
+
+# Grid configuration
+grid:
+  x_range: [-2.5, 2.5]
+  y_range: [-2.5, 2.5]
+  Nx: 60
+  Ny: 60
+
+# Model parameters with perturbations
+parameters:
+  well_depth: 12.0
+  well_width: 1.5
+  barrier_height: 25.0
+  
+  # Local perturbations (bumps and dips)
+  perturbations:
+    - x0: 0.3  # Perturbation 1: bump at (0.3, 0.3)
+      y0: 0.3
+      amplitude: 3.0  # Positive = bump
+      sigma: 0.15
+    
+    - x0: -0.4  # Perturbation 2: dip at (-0.4, 0.2)
+      y0: 0.2
+      amplitude: -2.5  # Negative = dip
+      sigma: 0.2
+    
+    - x0: 0.1  # Perturbation 3: small bump at (0.1, -0.3)
+      y0: -0.3
+      amplitude: 1.5
+      sigma: 0.1
+  
+  mass: 1.0
+  hbar: 1.0
+
+# Output configuration
+output_dir: "data/processed/quantum"
+output_filename: "potential_well_perturbed"
+save_hamiltonian: true

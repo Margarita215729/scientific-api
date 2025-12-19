@@ -1,7 +1,7 @@
 # Multi-stage build for Scientific API Production
 FROM python:3.11-slim as builder
 
-# Install system dependencies for building
+# Install system dependencies for building (including scientific computing libs)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -12,8 +12,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
-    sqlite3 \
-    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -27,13 +25,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Production stage
 FROM python:3.11-slim
 
-# Install runtime dependencies (меньший набор, т.к. компиляторы не нужны)
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libopenblas0 \
     liblapack3 \
     curl \
-    sqlite3 \
-    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user 
@@ -49,7 +45,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
 # Create necessary directories 
-RUN mkdir -p /app/models /app/galaxy_data /app/logs && \
+RUN mkdir -p /app/data /app/logs && \
     chown -R app:app /app
 
 # Set environment variables for production
@@ -57,6 +53,7 @@ ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
+ENV DATA_ROOT=/app/data
 
 # Switch to app user
 USER app
