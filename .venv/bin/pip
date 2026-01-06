@@ -1,4 +1,4 @@
-#!/Users/Gret/Desktop/DataManager/scientific-api/.venv/bin/python3.11
+#!/workspaces/scientific-api/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

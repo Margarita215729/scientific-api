@@ -356,7 +356,7 @@ Tasks:
 
 Tasks:
 
-1. Create `/ml/models/classification.py`:
+1. [x] Create `/ml/models/classification.py`:
    - Pipeline to train models that distinguish cosmological and quantum graphs.
    - Implement:
      - Logistic Regression baseline.
@@ -365,26 +365,26 @@ Tasks:
      - `train_classifiers(feature_table)`.
      - `evaluate_classifiers(feature_table)`.
 
-2. Store models in a dedicated directory, such as `/data/models/classification`.
+2. [x] Store models in a dedicated directory, such as `/data/models/classification`.
 
 ### 8.2 Similarity Regression
 
 Tasks:
 
-1. Create `/ml/models/similarity_regression.py`:
+1. [x] Create `/ml/models/similarity_regression.py`:
    - Functions to:
      - Construct pairwise feature representations of graph pairs.
      - Train regression models that predict a similarity score between graphs based on:
        - Graph distance metrics.
        - Feature differences.
 
-2. Save trained models in `/data/models/similarity`.
+2. [x] Save trained models in `/data/models/similarity`.
 
 ### 8.3 Clustering
 
 Tasks:
 
-1. Create `/ml/models/clustering.py`:
+1. [x] Create `/ml/models/clustering.py`:
    - Functions to:
      - Apply k-means clustering to graphs in feature space.
      - Apply density-based clustering such as DBSCAN.
@@ -398,7 +398,7 @@ Tasks:
 
 Tasks:
 
-1. Create `/ml/metrics/gw_distance.py`:
+1. [x] Create `/ml/metrics/gw_distance.py`:
    - Wrapper functions over POT library that:
      - Compute Gromov–Wasserstein distance between two graphs using distance matrices.
      - Optionally compute fused Gromov–Wasserstein when node features exist.
@@ -406,7 +406,7 @@ Tasks:
      - Accept graphs or precomputed distance matrices.
      - Return a scalar distance and any relevant diagnostics.
 
-2. Provide high-level utilities to:
+2. [x] Provide high-level utilities to:
    - Compute distances between sets of graphs.
    - Store results in tables under `/data/processed/distances`.
 
@@ -414,16 +414,16 @@ Tasks:
 
 Tasks:
 
-1. Create `/ml/metrics/spectral_distance.py`:
+1. [x] Create `/ml/metrics/spectral_distance.py`:
    - Function to compute L2 distance between sorted Laplacian spectra of two graphs.
 
-2. Create `/ml/metrics/distribution_distance.py`:
+2. [x] Create `/ml/metrics/distribution_distance.py`:
    - Functions to compute distances between:
      - Degree distributions.
      - Community size distributions.
    - Use Wasserstein distance as appropriate.
 
-3. Provide a consolidated function that takes two graphs and returns a vector of distance metrics.
+3. [x] Provide a consolidated function that takes two graphs and returns a vector of distance metrics.
 
 ---
 
@@ -433,13 +433,13 @@ Tasks:
 
 Tasks:
 
-1. Create `/app/api/schemas/experiments.py`:
+1. ✅ Create `/app/api/schemas/experiments.py`:
    - Pydantic models that define:
      - Experiment creation payload.
      - Experiment metadata response.
      - Experiment run status and results.
 
-2. Create `/app/db/experiments.py`:
+2. ✅ Create `/app/db/experiments.py`:
    - Functions to:
      - Insert new experiment documents into MongoDB.
      - Retrieve and update experiments.
@@ -448,7 +448,7 @@ Tasks:
 
 Tasks:
 
-1. Create `/app/services/experiment_runner.py`:
+1. ✅ Create `/app/services/experiment_runner.py`:
    - High-level orchestration of:
      - Data preparation.
      - Graph construction.
@@ -460,7 +460,7 @@ Tasks:
      - `run_full_pipeline(experiment_id, force_recompute: bool)`
      - `get_results(experiment_id)`
 
-2. Integrate Celery where heavy steps are executed:
+2. ✅ Integrate Celery where heavy steps are executed:
    - Define Celery tasks that wrap long-running computations.
    - Ensure idempotency where possible.
 
@@ -470,18 +470,21 @@ Tasks:
 
 Tasks:
 
-1. Create `/app/api/routes/experiments.py`:
+1. ✅ Create `/app/api/routes/experiments.py`:
    - Implement endpoints under `/api/v1/experiments`:
-     - `POST /experiments/` — create experiment.
-     - `GET /experiments/{id}` — get experiment metadata.
-     - `POST /experiments/{id}/run-full-pipeline` — trigger pipeline run.
-     - `GET /experiments/{id}/results` — get aggregated metrics.
-     - `GET /experiments/{id}/metrics` — get full set of metric values.
-     - `GET /experiments/{id}/graphs/{system_type}` — provide graphs for visualization.
-     - `GET /experiments/{id}/plots/{plot_type}` — provide plot data or images.
+     - ✅ `POST /experiments/` — create experiment.
+     - ✅ `GET /experiments/{id}` — get experiment metadata.
+     - ✅ `POST /experiments/{id}/run` — trigger pipeline run (sync).
+     - ✅ `POST /experiments/{id}/run-async` — trigger pipeline run (async via Celery).
+     - ✅ `GET /experiments/{id}/results` — get aggregated metrics.
+     - ✅ `GET /experiments/{id}/status` — get execution status and progress.
+     - ✅ `GET /experiments/` — list experiments with filters.
+     - ✅ `DELETE /experiments/{id}` — delete experiment.
+     - [ ] `GET /experiments/{id}/graphs/{system_type}` — provide graphs for visualization.
+     - [ ] `GET /experiments/{id}/plots/{plot_type}` — provide plot data or images.
 
-2. Register these routes in the main FastAPI application module.
-3. Ensure OpenAPI schema is generated correctly and endpoints have clear request and response models.
+2. ✅ Register these routes in the main FastAPI application module.
+3. ✅ Ensure OpenAPI schema is generated correctly and endpoints have clear request and response models.
 
 ---
 
@@ -496,11 +499,13 @@ Tasks:
      - Two-dimensional projections of embeddings.
 
 2. Create notebooks in `/notebooks`:
-   - `01_cosmology_graphs.ipynb`
-   - `02_quantum_graphs.ipynb`
-   - `03_spectral_analysis.ipynb`
-   - `04_gw_distances.ipynb`
-   - `05_ml_results.ipynb`
+   - [x] `01_pipeline_implementation.ipynb` — инженерный прогон, сохраняет артефакты в `outputs/pipeline` и графики в `reports/figures`.
+   - [x] `02_experiments_and_results.ipynb` — базовые эксперименты, ablation/sensitivity, результаты в `reports/tables` и `reports/figures`.
+   - [ ] `01_cosmology_graphs.ipynb`
+   - [ ] `02_quantum_graphs.ipynb`
+   - [ ] `03_spectral_analysis.ipynb`
+   - [ ] `04_gw_distances.ipynb`
+   - [ ] `05_ml_results.ipynb`
    - Each notebook must demonstrate one part of the pipeline and produce figures suitable for inclusion in the thesis.
 
 3. Ensure API endpoints call the shared visualization functions instead of duplicating plotting logic.
@@ -575,10 +580,10 @@ Mark items as completed when the corresponding tasks are fully implemented and t
 
 ### Features
 
-- [ ] Topological feature computation implemented.
-- [ ] Spectral feature computation implemented.
-- [ ] Embeddings computation and aggregation implemented.
-- [ ] Unified feature table construction implemented.
+- [x] Topological feature computation implemented.
+- [x] Spectral feature computation implemented.
+- [x] Embeddings computation and aggregation implemented.
+- [x] Unified feature table construction implemented.
 
 ### Models
 

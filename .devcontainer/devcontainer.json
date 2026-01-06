@@ -1,29 +1,26 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/alpine
 {
-	"name": "Alpine",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:alpine-3.20",
+	"name": "Scientific API Debian",
+	"image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"openai.chatgpt"
-			]
+				"openai.chatgpt",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"charliermarsh.ruff"
+			],
+			"settings": {
+				"python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+				"python.languageServer": "Pylance",
+				"python.analysis.typeCheckingMode": "basic"
+			}
 		}
-	}
-
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	},
+	"postCreateCommand": "apt-get update && apt-get install -y git-lfs build-essential libpq-dev && git lfs install && python -m venv .venv && . .venv/bin/activate && pip install -U pip && pip install -e . && pip install numpy pandas scipy scikit-learn matplotlib pyarrow pyyaml httpx astropy tqdm networkx && pip install -r requirements.txt",
+	"forwardPorts": [
+		8000
+	],
+	"remoteUser": "vscode"
 }

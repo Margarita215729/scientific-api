@@ -124,6 +124,24 @@ try:
     except Exception as e:
         logger.warning(f"Failed to load ML models router: {e}")
 
+    # Include experiment routes
+    try:
+        from app.api.routes.experiments import router as experiments_router
+        app.include_router(experiments_router, prefix="/api/v1")
+        logger.info("Successfully loaded experiments router under /api/v1")
+    except Exception as e:
+        logger.warning(f"Failed to load experiments router: {e}")
+
+    # Ensure experiment collection indexes on startup
+    @app.on_event("startup")
+    async def setup_experiment_indexes():
+        try:
+            from app.db.experiments import create_indexes
+            await create_indexes()
+            logger.info("Experiment indexes ensured")
+        except Exception as e:
+            logger.warning(f"Failed to ensure experiment indexes: {e}")
+
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request):
         try:

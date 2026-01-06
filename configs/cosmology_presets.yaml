@@ -1,0 +1,46 @@
+presets:
+  low_z:
+    region:
+      ra_min: 150.0
+      ra_max: 210.0
+      dec_min: -5.0
+      dec_max: 5.0
+    redshift:
+      z_min: 0.02
+      z_max: 0.30
+    limits:
+      target_points_per_source: 500000
+      seed: 42
+    sdss_dr17:
+      class: "GALAXY"
+      zwarning_allowed: [0, 16]
+      ra_bin_deg: 5.0
+      per_query_limit: 100000
+      max_queries: 200
+    desi_dr1:
+      files:
+        - { target: "BGS_BRIGHT", photsys: "N" }
+        - { target: "BGS_BRIGHT", photsys: "S" }
+
+  high_z:
+    region:
+      ra_min: 150.0
+      ra_max: 210.0
+      dec_min: -5.0
+      dec_max: 5.0
+    redshift:
+      z_min: 0.45
+      z_max: 1.05
+    limits:
+      target_points_per_source: 500000
+      seed: 42
+    sdss_dr17:
+      class: "GALAXY"
+      zwarning_allowed: [0, 16]
+      ra_bin_deg: 5.0
+      per_query_limit: 100000
+      max_queries: 200
+    desi_dr1:
+      files:
+        - { target: "LRG", photsys: "N" }
+        - { target: "LRG", photsys: "S" }

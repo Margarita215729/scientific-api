@@ -55,10 +55,15 @@ Thumbs.db
 
 # Data files
 galaxy_data/
+data/
+outputs/
+reports/
 *.csv
 *.fits
+*.fits.gz
 *.h5
 *.parquet
+*.arrow
 
 # Logs
 *.log

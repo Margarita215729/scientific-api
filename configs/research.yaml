@@ -1,0 +1,74 @@
+# Unified experiment configuration
+# All parameters for notebooks and pipeline should come from here.
+
+seed:
+  python: 42
+  numpy: 42
+  torch: 42  # used only if torch is installed
+
+paths:
+  data_root: ./data
+  outputs_pipeline: ./outputs/pipeline
+  outputs_experiments: ./outputs/experiments
+  reports_figures: ./reports/figures
+  reports_tables: ./reports/tables
+
+cosmology:
+  config_path: ./configs/cosmology_sdss_dr18.yaml
+  ra_range: [0.0, 360.0]
+  dec_range: [-5.0, 5.0]
+  redshift_range: [0.0, 0.2]
+  max_galaxies: 2000
+  graph:
+    k_neighbors: 10
+    distance_metric: euclidean
+
+quantum:
+  config_path: ./configs/quantum_heisenberg_2d.yaml
+  grid_size: 32
+  potential: heisenberg
+  graph:
+    max_nodes: 1500
+
+features:
+  spectral_k: 20
+  include_topology: true
+  include_spectral: true
+  include_embeddings: true
+
+models:
+  classification:
+    test_size: 0.2
+    random_state: 42
+  similarity:
+    method: combined
+    random_state: 42
+  clustering:
+    n_clusters: 3
+    dbscan_eps: 0.5
+    dbscan_min_samples: 5
+
+metrics:
+  gw:
+    enabled: true
+    method: degree
+  spectral:
+    enabled: true
+    k: 20
+    metric: l2
+  distribution:
+    enabled: true
+    property: degree
+    distance: wasserstein
+
+experiments:
+  baseline:
+    description: "Baseline comparison cosmology vs quantum graphs"
+  ablations:
+    - name: "no_embeddings"
+      features: {include_embeddings: false}
+    - name: "no_spectral"
+      features: {include_spectral: false}
+  sensitivity:
+    k_neighbors: [5, 10, 20]
+    spectral_k: [10, 20, 30]
