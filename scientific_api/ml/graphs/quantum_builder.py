@@ -13,7 +13,7 @@ import numpy as np
 from scipy import sparse
 
 from app.core.logging import get_logger
-from ml.graphs.base import (
+from scientific_api.ml.graphs.base import (
     add_coordinates_to_graph,
     create_graph_from_edges,
     normalize_coordinates,
@@ -178,7 +178,7 @@ def save_quantum_graph(
         output_path: Path where to save the graph.
         format: Output format ('graphml', 'gexf', 'edgelist').
     """
-    from ml.graphs.cosmology_builder import save_graph
+    from scientific_api.ml.graphs.cosmology_builder import save_graph
 
     save_graph(graph, output_path, format=format)
 
@@ -197,7 +197,7 @@ def load_quantum_graph(
     Returns:
         NetworkX graph.
     """
-    from ml.graphs.cosmology_builder import load_graph
+    from scientific_api.ml.graphs.cosmology_builder import load_graph
 
     return load_graph(input_path, format=format)
 

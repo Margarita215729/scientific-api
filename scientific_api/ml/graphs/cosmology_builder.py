@@ -13,9 +13,8 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 
-from app.core.config import get_settings
 from app.core.logging import get_logger
-from ml.graphs.base import (
+from scientific_api.ml.graphs.base import (
     add_coordinates_to_graph,
     create_graph_from_edges,
     normalize_coordinates,
@@ -195,7 +194,7 @@ def save_graph(
     else:
         raise ValueError(f"Unsupported format: {format}")
 
-    logger.info(f"Graph saved successfully")
+    logger.info("Graph saved successfully")
 
 
 def load_graph(

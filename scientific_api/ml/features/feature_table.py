@@ -11,11 +11,16 @@ from typing import Dict, List, Optional, Union
 import networkx as nx
 import pandas as pd
 
-from app.core.config import get_settings
 from app.core.logging import get_logger
-from ml.features.embeddings import compute_embedding_features, compute_positional_encoding_features
-from ml.features.spectral import compute_extended_spectral_features, compute_spectral_features
-from ml.features.topology import compute_topology_features
+from scientific_api.ml.features.embeddings import (
+    compute_embedding_features,
+    compute_positional_encoding_features,
+)
+from scientific_api.ml.features.spectral import (
+    compute_extended_spectral_features,
+    compute_spectral_features,
+)
+from scientific_api.ml.features.topology import compute_topology_features
 
 logger = get_logger(__name__)
 
@@ -213,9 +218,7 @@ def build_feature_table(
     feature_cols = [col for col in df.columns if col not in metadata_cols]
     df = df[metadata_cols + feature_cols]
 
-    logger.info(
-        f"Feature table built: {len(df)} rows, {len(df.columns)} columns"
-    )
+    logger.info(f"Feature table built: {len(df)} rows, {len(df.columns)} columns")
 
     return df
 
@@ -248,7 +251,7 @@ def save_feature_table(
     else:
         raise ValueError(f"Unsupported format: {format}")
 
-    logger.info(f"Feature table saved successfully")
+    logger.info("Feature table saved successfully")
 
 
 def load_feature_table(
@@ -279,9 +282,7 @@ def load_feature_table(
     else:
         raise ValueError(f"Unsupported format: {format}")
 
-    logger.info(
-        f"Feature table loaded: {len(df)} rows, {len(df.columns)} columns"
-    )
+    logger.info(f"Feature table loaded: {len(df)} rows, {len(df.columns)} columns")
 
     return df
 

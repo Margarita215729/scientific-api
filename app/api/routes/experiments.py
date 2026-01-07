@@ -1,11 +1,8 @@
 """FastAPI routes for experiment management."""
 
 import logging
-from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
-import numpy as np
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.schemas.experiments import (
@@ -16,7 +13,6 @@ from app.api.schemas.experiments import (
     ExperimentResults,
     ExperimentStatus,
 )
-from app.core.config import get_settings
 from app.db.experiments import (
     count_experiments,
     delete_experiment,
@@ -30,95 +26,11 @@ from app.services.experiment_runner import (
     get_experiment_results,
     run_experiment,
 )
-from ml.graphs.base import get_graph_info
-from ml.graphs.cosmology_builder import load_graph
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/experiments", tags=["experiments"])
-
-
-def _serialize_node(node: int, data: dict) -> dict:
-    """Convert node attributes into a lightweight JSON-friendly payload."""
-
-    payload = {"id": int(node)}
-    for key in ("x", "y", "z", "potential", "system_type", "model_type"):
-        if key in data:
-            value = data[key]
-            if isinstance(value, (int, float, np.integer, np.floating)):
-                payload[key] = float(value)
-            else:
-                payload[key] = str(value)
-    return payload
-
-
-def _graph_to_payload(graph, graph_id: str, max_nodes: int, max_edges: int) -> dict:
-    """Serialize graph structure with trimmed nodes/edges for visualization."""
-
-    node_ids = sorted(graph.nodes())
-    if max_nodes:
-        node_ids = node_ids[:max_nodes]
-    node_set = set(node_ids)
-
-    nodes = [_serialize_node(node, graph.nodes[node]) for node in node_ids]
-
-    edges = []
-    for u, v, data in graph.edges(data=True):
-        if u in node_set and v in node_set:
-            edges.append(
-                {
-                    "source": int(u),
-                    "target": int(v),
-                    "weight": float(data.get("weight", 1.0)),
-                }
-            )
-            if len(edges) >= max_edges:
-                break
-
-    summary = get_graph_info(graph)
-    summary["graph_id"] = graph_id
-
-    return {
-        "graph_id": graph_id,
-        "summary": summary,
-        "nodes": nodes,
-        "edges": edges,
-    }
-
-
-def _load_distance_matrix(path: Path) -> np.ndarray:
-    """Load distance matrix from .npz or .npy file."""
-
-    data = np.load(path, allow_pickle=False)
-    if isinstance(data, np.lib.npyio.NpzFile):
-        matrix = (
-            data["distance_matrix"]
-            if "distance_matrix" in data
-            else data[data.files[0]]
-        )
-        data.close()
-        return matrix
-
-    return data
-
-
-def _feature_means_by_type(feature_table_path: Path) -> List[dict]:
-    """Compute per-graph-type mean of numeric features."""
-
-    df = pd.read_csv(feature_table_path)
-    if "graph_type" not in df.columns:
-        raise ValueError("feature_table.csv missing graph_type column")
-
-    numeric_cols = [
-        col
-        for col in df.columns
-        if col not in {"graph_id", "graph_type"}
-        and pd.api.types.is_numeric_dtype(df[col])
-    ]
-
-    grouped = df.groupby("graph_type")[numeric_cols].mean().reset_index()
-    return grouped.to_dict(orient="records")
 
 
 @router.post(
@@ -508,190 +420,4 @@ async def get_experiment_status_endpoint(
         "started_at": document.get("started_at"),
         "completed_at": document.get("completed_at"),
         "error_message": document.get("error_message"),
-    }
-
-
-@router.get(
-    "/{experiment_id}/graphs/{system_type}",
-    response_model=dict,
-    summary="Get serialized graphs for visualization",
-    description="Return lightweight node/edge data for saved graphs of an experiment.",
-)
-async def get_experiment_graphs_endpoint(
-    experiment_id: str,
-    system_type: str,
-    limit: int = Query(default=3, ge=1, le=20, description="Maximum graphs to return"),
-    max_nodes: int = Query(
-        default=200, ge=10, le=2000, description="Trim nodes per graph"
-    ),
-    max_edges: int = Query(
-        default=4000, ge=100, le=20000, description="Trim edges per graph"
-    ),
-) -> dict:
-    """Load and serialize saved graphs for client-side plotting."""
-
-    if system_type not in {"cosmology", "quantum"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="system_type must be either 'cosmology' or 'quantum'",
-        )
-
-    document = await get_experiment(experiment_id)
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
-
-    settings = get_settings()
-    graph_dir = (
-        Path(settings.DATA_ROOT)
-        / "experiments"
-        / experiment_id
-        / "graphs"
-        / system_type
-    )
-
-    if not graph_dir.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No saved graphs found for {system_type} in experiment {experiment_id}",
-        )
-
-    graph_files = sorted(graph_dir.glob("*.graphml"))
-    total_available = len(graph_files)
-    if total_available == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No graphml files available for {system_type} in experiment {experiment_id}",
-        )
-
-    selected_files = graph_files[:limit]
-    graphs_payload = []
-
-    for path in selected_files:
-        try:
-            graph = load_graph(path)
-            payload = _graph_to_payload(
-                graph,
-                graph_id=path.stem,
-                max_nodes=max_nodes,
-                max_edges=max_edges,
-            )
-            payload["source_path"] = str(path)
-            graphs_payload.append(payload)
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.warning(f"Failed to load graph {path}: {exc}")
-
-    if not graphs_payload:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to load graphs for visualization",
-        )
-
-    return {
-        "experiment_id": experiment_id,
-        "system_type": system_type,
-        "total_available": total_available,
-        "returned": len(graphs_payload),
-        "graphs": graphs_payload,
-    }
-
-
-@router.get(
-    "/{experiment_id}/plots/{plot_type}",
-    response_model=dict,
-    summary="Get plot-ready data",
-    description="Provide condensed data slices suitable for client-side plotting.",
-)
-async def get_experiment_plot_data_endpoint(
-    experiment_id: str,
-    plot_type: str,
-    distance_type: Optional[str] = Query(
-        default="spectral",
-        description="Distance matrix type: spectral, gromov_wasserstein, or distribution",
-    ),
-    max_size: int = Query(
-        default=50,
-        ge=5,
-        le=200,
-        description="Maximum matrix dimension to return for heatmaps",
-    ),
-) -> dict:
-    """Return precomputed data for plots such as distance heatmaps and feature means."""
-
-    if plot_type not in {"distance_heatmap", "feature_means"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="plot_type must be 'distance_heatmap' or 'feature_means'",
-        )
-
-    document = await get_experiment(experiment_id)
-    if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
-
-    if document.get("status") != ExperimentStatus.COMPLETED.value:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Experiment {experiment_id} is not completed",
-        )
-
-    base_dir = Path(get_settings().DATA_ROOT) / "experiments" / experiment_id
-
-    if plot_type == "distance_heatmap":
-        filename_map = {
-            "spectral": "spectral_distance_matrix.npz",
-            "gromov_wasserstein": "gw_distance_matrix.npz",
-            "distribution": "distribution_distance_matrix.npz",
-        }
-        if distance_type not in filename_map:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid distance_type; use spectral, gromov_wasserstein, or distribution",
-            )
-
-        matrix_path = base_dir / "distances" / filename_map[distance_type]
-        if not matrix_path.exists():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Distance matrix not found for type {distance_type}",
-            )
-
-        matrix = _load_distance_matrix(matrix_path)
-        size = min(max_size, matrix.shape[0])
-        matrix_slice = matrix[:size, :size].tolist()
-
-        return {
-            "experiment_id": experiment_id,
-            "plot_type": plot_type,
-            "distance_type": distance_type,
-            "matrix_size": [int(v) for v in matrix.shape],
-            "returned_size": size,
-            "matrix": matrix_slice,
-        }
-
-    # feature_means
-    feature_table_path = base_dir / "features" / "feature_table.csv"
-    if not feature_table_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="feature_table.csv not found for experiment",
-        )
-
-    try:
-        feature_summary = _feature_means_by_type(feature_table_path)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
-
-    return {
-        "experiment_id": experiment_id,
-        "plot_type": plot_type,
-        "feature_summary": feature_summary,
-        "feature_table_path": str(feature_table_path),
     }

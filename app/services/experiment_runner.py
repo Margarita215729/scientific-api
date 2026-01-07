@@ -28,31 +28,43 @@ from app.db.experiments import (
 )
 
 # ML pipeline imports
-from ml.data_cosmology.io import load_cosmology_data
-from ml.data_cosmology.preprocessing import preprocess_cosmology_data
-from ml.data_quantum.preprocessing import prepare_quantum_system
-from ml.features.embeddings import compute_graph_embeddings
-from ml.features.feature_table import build_feature_table, save_feature_table
-from ml.features.spectral import compute_spectral_features
-from ml.features.topology import compute_topological_features
-from ml.graphs.cosmology_builder import build_cosmology_graph, save_graph
-from ml.graphs.quantum_builder import build_quantum_graph, save_quantum_graph
-from ml.metrics.distribution_distance import compute_pairwise_distribution_matrix
-from ml.metrics.gw_distance import compute_pairwise_gw_matrix, save_distance_matrix
-from ml.metrics.spectral_distance import compute_pairwise_spectral_matrix
-from ml.models.classification import (
+from scientific_api.ml.data_cosmology.io import load_cosmology_data
+from scientific_api.ml.data_cosmology.preprocessing import preprocess_cosmology_data
+from scientific_api.ml.data_quantum.preprocessing import prepare_quantum_system
+from scientific_api.ml.features.embeddings import compute_graph_embeddings
+from scientific_api.ml.features.feature_table import (
+    build_feature_table,
+    save_feature_table,
+)
+from scientific_api.ml.features.spectral import compute_spectral_features
+from scientific_api.ml.features.topology import compute_topological_features
+from scientific_api.ml.graphs.cosmology_builder import build_cosmology_graph
+from scientific_api.ml.graphs.quantum_builder import build_quantum_graph
+from scientific_api.ml.metrics.distribution_distance import (
+    compute_pairwise_distribution_matrix,
+    save_distribution_matrix,
+)
+from scientific_api.ml.metrics.gw_distance import (
+    compute_pairwise_gw_matrix,
+    save_distance_results,
+)
+from scientific_api.ml.metrics.spectral_distance import (
+    compute_pairwise_spectral_matrix,
+    save_spectral_matrix,
+)
+from scientific_api.ml.models.classification import (
     evaluate_classifiers,
     prepare_classification_data,
     save_classifier,
     train_classifiers,
 )
-from ml.models.clustering import (
+from scientific_api.ml.models.clustering import (
     cluster_graphs_dbscan,
     cluster_graphs_kmeans,
     evaluate_clustering,
     save_clustering,
 )
-from ml.models.similarity_regression import (
+from scientific_api.ml.models.similarity_regression import (
     build_pairwise_features,
     evaluate_similarity_regressors,
     save_regressor,
@@ -88,8 +100,6 @@ class ExperimentRunner:
         self.data_root = self.settings.DATA_ROOT
         self.experiment_dir = self.data_root / "experiments" / experiment_id
         self.graphs_dir = self.experiment_dir / "graphs"
-        self.cosmology_graphs_dir = self.graphs_dir / "cosmology"
-        self.quantum_graphs_dir = self.graphs_dir / "quantum"
         self.features_dir = self.experiment_dir / "features"
         self.models_dir = self.experiment_dir / "models"
         self.distances_dir = self.experiment_dir / "distances"
@@ -98,8 +108,6 @@ class ExperimentRunner:
         for directory in [
             self.experiment_dir,
             self.graphs_dir,
-            self.cosmology_graphs_dir,
-            self.quantum_graphs_dir,
             self.features_dir,
             self.models_dir,
             self.distances_dir,
@@ -181,10 +189,10 @@ class ExperimentRunner:
 
         for i in range(self.config.n_cosmology_graphs):
             # Sample subset if needed (or use different configs)
-            graph = build_cosmology_graph(cosmology_data_clean)
+            graph = build_cosmology_graph(
+                cosmology_data_clean, cosmology_config_path, graph_id=f"cosmo_{i}"
+            )
             self.cosmology_graphs.append(graph)
-            graph_path = self.cosmology_graphs_dir / f"cosmology_{i}.graphml"
-            save_graph(graph, graph_path)
             logger.info(f"Built cosmology graph {i+1}/{self.config.n_cosmology_graphs}")
 
         # Build quantum graphs
@@ -192,10 +200,10 @@ class ExperimentRunner:
 
         for i in range(self.config.n_quantum_graphs):
             quantum_system = prepare_quantum_system(quantum_config_path)
-            graph = build_quantum_graph(quantum_system)
+            graph = build_quantum_graph(
+                quantum_system, quantum_config_path, graph_id=f"quantum_{i}"
+            )
             self.quantum_graphs.append(graph)
-            graph_path = self.quantum_graphs_dir / f"quantum_{i}.graphml"
-            save_quantum_graph(graph, graph_path)
             logger.info(f"Built quantum graph {i+1}/{self.config.n_quantum_graphs}")
 
         # Compute graph statistics
@@ -441,10 +449,6 @@ class ExperimentRunner:
         logger.info("Computing distance matrices...")
 
         all_graphs = self.cosmology_graphs + self.quantum_graphs
-        graph_ids = [
-            *(f"cosmo_{i}" for i in range(len(self.cosmology_graphs))),
-            *(f"quantum_{i}" for i in range(len(self.quantum_graphs))),
-        ]
         distance_summaries = {}
 
         # Gromov-Wasserstein distance
@@ -455,7 +459,7 @@ class ExperimentRunner:
                     method="degree",
                 )
                 save_path = self.distances_dir / "gw_distance_matrix.npz"
-                save_distance_matrix(gw_matrix, graph_ids, save_path)
+                save_distance_results(gw_matrix, save_path)
 
                 distance_summaries["gromov_wasserstein"] = (
                     self._summarize_distance_matrix(gw_matrix, "gromov_wasserstein")
@@ -473,11 +477,7 @@ class ExperimentRunner:
                 distance_metric="l2",
             )
             save_path = self.distances_dir / "spectral_distance_matrix.npz"
-            np.savez_compressed(
-                save_path,
-                distance_matrix=spectral_matrix,
-                graph_ids=np.array(graph_ids),
-            )
+            save_spectral_matrix(spectral_matrix, save_path)
 
             distance_summaries["spectral"] = self._summarize_distance_matrix(
                 spectral_matrix, "spectral"
@@ -492,11 +492,7 @@ class ExperimentRunner:
                 distance_type="wasserstein",
             )
             save_path = self.distances_dir / "distribution_distance_matrix.npz"
-            np.savez_compressed(
-                save_path,
-                distance_matrix=dist_matrix,
-                graph_ids=np.array(graph_ids),
-            )
+            save_distribution_matrix(dist_matrix, save_path)
 
             distance_summaries["distribution"] = self._summarize_distance_matrix(
                 dist_matrix, "distribution"
@@ -517,8 +513,6 @@ class ExperimentRunner:
         # Build data paths
         data_paths = {
             "feature_table": str(self.features_dir / "feature_table.csv"),
-            "cosmology_graphs_dir": str(self.cosmology_graphs_dir),
-            "quantum_graphs_dir": str(self.quantum_graphs_dir),
         }
         for file_path in self.distances_dir.glob("*.npz"):
             data_paths[file_path.stem] = str(file_path)

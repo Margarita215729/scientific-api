@@ -24,4 +24,4 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["scientific_api*", "app*", "ml*"]
+include = ["scientific_api*", "app*"]

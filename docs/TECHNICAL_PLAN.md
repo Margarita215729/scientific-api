@@ -119,35 +119,37 @@ When adding or changing dependencies, update `pyproject.toml` and keep versions 
 
 ## 3. Repository Structure
 
-Target structure for the repository (canonical ML stack lives under `scientific_api`):
+Target structure for the repository:
 
 - `/app`
-   - `/app/api` — FastAPI routers, request/response schemas, dependencies
-   - `/app/core` — configuration, logging, shared utilities, error handling
-   - `/app/services` — orchestration and business logic (pipeline coordination)
-   - `/app/db` — MongoDB connection and models
-- `/scientific_api`
-   - `/scientific_api/ml` — ingestion, graph building, features, models, metrics
-   - `/scientific_api/storage` — paths, manifests, registries
+  - `/app/api` — FastAPI routers, request/response schemas, dependencies
+  - `/app/core` — configuration, logging, shared utilities, error handling
+  - `/app/services` — orchestration and business logic (pipeline coordination)
+  - `/app/db` — MongoDB connection and models
+- `/ml`
+  - `/ml/data_cosmology` — ingestion, filtering and preprocessing for SDSS and DESI data
+  - `/ml/data_quantum` — generation and processing of quantum models
+  - `/ml/graphs` — graph construction and normalization
+  - `/ml/features` — topological, spectral features and embeddings
+  - `/ml/models` — training and inference routines
+  - `/ml/metrics` — graph distance metrics and evaluation utilities
 - `/configs` — experiment configuration files (YAML or JSON)
 - `/data`
-   - `/data/raw` — references to raw data locations, lightweight samples
-   - `/data/processed` — generated graph and feature files
+  - `/data/raw` — references to raw data locations, lightweight samples
+  - `/data/processed` — generated graph and feature files
 - `/notebooks` — research notebooks used in the thesis
 - `/scripts` — helper scripts (data sampling, seeding, maintenance)
 - `/tests` — minimal smoke tests
 - Root files:
-   - `README.md`
-   - `TECHNICAL_PLAN.md`
-   - `ROADMAP.md` (end-user oriented)
-   - `docker-compose.yml`
-   - `Dockerfile`
-   - `pyproject.toml`
-   - `.env.example`
-   - `.vscode/` settings and extension recommendations
-   - `scientific-api.http` for REST Client
-
-> All references to `/ml/...` tasks map to `/scientific_api/ml/...` after consolidation.
+  - `README.md`
+  - `TECHNICAL_PLAN.md`
+  - `ROADMAP.md` (end-user oriented)
+  - `docker-compose.yml`
+  - `Dockerfile`
+  - `pyproject.toml`
+  - `.env.example`
+  - `.vscode/` settings and extension recommendations
+  - `scientific-api.http` for REST Client
 
 Your task is to align current project files with this structure and create missing directories and modules when they are required by this plan.
 
@@ -187,10 +189,6 @@ Tasks for you:
 
 5. **Repository hygiene**
    - [x] Ignore locally downloaded/built CPython sources and archives to avoid committing vendor artifacts (e.g., `Python-3.11.9/`, `Python-*.tgz`).
-   - [x] Harden `.gitignore` to keep `.venv`, caches (`__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`), notebooks checkpoints, and data/outputs out of Git.
-   - [x] Remove local-only artifacts (`.venv/`, `LogFiles/`, `app-logs.zip`, data/output trees) from the Git index while preserving them locally.
-   - [x] Ensure `git-lfs` is installed automatically via devcontainer `postCreateCommand`.
-   - [x] Consolidate the ML stack under `scientific_api/ml` as the canonical package path (imports updated away from top-level `ml`).
 
 ---
 

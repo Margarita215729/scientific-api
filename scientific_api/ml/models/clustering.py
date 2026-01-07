@@ -25,7 +25,7 @@ Dependencies:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
@@ -77,8 +77,10 @@ def prepare_clustering_data(
         # Use all numeric columns except metadata
         exclude_cols = {"graph_id", "system_type"}
         feature_columns = [
-            col for col in feature_table.columns
-            if col not in exclude_cols and pd.api.types.is_numeric_dtype(feature_table[col])
+            col
+            for col in feature_table.columns
+            if col not in exclude_cols
+            and pd.api.types.is_numeric_dtype(feature_table[col])
         ]
 
     logger.info(f"Using {len(feature_columns)} features for clustering")
@@ -187,7 +189,9 @@ def cluster_graphs_dbscan(
     - Robust to outliers (noise points labeled as -1)
     - Sensitive to eps and min_samples parameters
     """
-    logger.info(f"Running DBSCAN clustering with eps={eps}, min_samples={min_samples}...")
+    logger.info(
+        f"Running DBSCAN clustering with eps={eps}, min_samples={min_samples}..."
+    )
 
     dbscan = DBSCAN(eps=eps, min_samples=min_samples, n_jobs=-1)
 
@@ -363,8 +367,10 @@ def compute_cluster_statistics(
         # Use all numeric columns except cluster_id and metadata
         exclude_cols = {cluster_column, "graph_id", "system_type"}
         feature_columns = [
-            col for col in feature_table.columns
-            if col not in exclude_cols and pd.api.types.is_numeric_dtype(feature_table[col])
+            col
+            for col in feature_table.columns
+            if col not in exclude_cols
+            and pd.api.types.is_numeric_dtype(feature_table[col])
         ]
 
     # Group by cluster
@@ -435,7 +441,9 @@ def save_clustering(
     logger.info(f"Clustering saved to {output_path}")
 
 
-def load_clustering(input_path: Path) -> Tuple[np.ndarray, Optional[StandardScaler], List[str], str, Dict[str, Any]]:
+def load_clustering(
+    input_path: Path,
+) -> Tuple[np.ndarray, Optional[StandardScaler], List[str], str, Dict[str, Any]]:
     """
     Load clustering results and metadata.
 
@@ -473,7 +481,7 @@ def load_clustering(input_path: Path) -> Tuple[np.ndarray, Optional[StandardScal
 # Example usage
 if __name__ == "__main__":
     from app.core.logging import setup_logging
-    from ml.features.feature_table import load_feature_table
+    from scientific_api.ml.features.feature_table import load_feature_table
 
     setup_logging()
 
@@ -494,10 +502,14 @@ if __name__ == "__main__":
         print("K-means metrics:", metrics_kmeans)
 
         # Assign labels
-        feature_table_kmeans = assign_cluster_labels(feature_table, labels_kmeans, "kmeans_cluster")
+        feature_table_kmeans = assign_cluster_labels(
+            feature_table, labels_kmeans, "kmeans_cluster"
+        )
 
         # Cluster statistics
-        cluster_stats_kmeans = compute_cluster_statistics(feature_table_kmeans, "kmeans_cluster")
+        cluster_stats_kmeans = compute_cluster_statistics(
+            feature_table_kmeans, "kmeans_cluster"
+        )
         print("\nK-means cluster statistics:")
         print(cluster_stats_kmeans[["kmeans_cluster", "count"]])
 
@@ -508,18 +520,24 @@ if __name__ == "__main__":
         print("DBSCAN metrics:", metrics_dbscan)
 
         # Assign labels
-        feature_table_dbscan = assign_cluster_labels(feature_table, labels_dbscan, "dbscan_cluster")
+        feature_table_dbscan = assign_cluster_labels(
+            feature_table, labels_dbscan, "dbscan_cluster"
+        )
 
         # Cluster statistics
-        cluster_stats_dbscan = compute_cluster_statistics(feature_table_dbscan, "dbscan_cluster")
+        cluster_stats_dbscan = compute_cluster_statistics(
+            feature_table_dbscan, "dbscan_cluster"
+        )
         print("\nDBSCAN cluster statistics:")
         print(cluster_stats_dbscan[["dbscan_cluster", "count"]])
 
         # Save clustering results
         output_dir = Path("data/clustering")
         feature_cols = [
-            col for col in feature_table.columns
-            if col not in {"graph_id", "system_type"} and pd.api.types.is_numeric_dtype(feature_table[col])
+            col
+            for col in feature_table.columns
+            if col not in {"graph_id", "system_type"}
+            and pd.api.types.is_numeric_dtype(feature_table[col])
         ]
 
         save_clustering(
@@ -528,7 +546,7 @@ if __name__ == "__main__":
             feature_cols,
             "kmeans",
             {"n_clusters": 3},
-            output_dir / "kmeans_clustering.joblib"
+            output_dir / "kmeans_clustering.joblib",
         )
 
         save_clustering(
@@ -537,10 +555,12 @@ if __name__ == "__main__":
             feature_cols,
             "dbscan",
             {"eps": 0.5, "min_samples": 5},
-            output_dir / "dbscan_clustering.joblib"
+            output_dir / "dbscan_clustering.joblib",
         )
 
         logger.info("Clustering complete")
     else:
         logger.error(f"Feature table not found at {feature_table_path}")
-        logger.info("Run build_feature_table_from_directory() first to generate feature table")
+        logger.info(
+            "Run build_feature_table_from_directory() first to generate feature table"
+        )

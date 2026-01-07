@@ -1,28 +1,5 @@
 # Development Log
 
-## 2026-01-07 | Repo normalization & ML path consolidation
-
-### Tasks Completed
-- Hardened `.gitignore` for local envs/caches (`.venv`, `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `.ipynb_checkpoints`) to keep artifacts out of Git; executed `git rm --cached` safety commands for `.venv`, `LogFiles`, `app-logs.zip`, and data/outputs/reports (no tracked entries remained).
-- Updated devcontainer `postCreateCommand` to install `git-lfs` with `sudo` on rebuild, keeping the rest of the bootstrap chain intact.
-- Moved the canonical ML stack under `scientific_api/ml` and updated all imports plus packaging rules; `pyproject.toml` now packages `scientific_api*` and `app*` only.
-- Added `scientific_api/storage/__init__.py` and kept the new manifest helper `scientific_api/storage/registry.py` usable via package imports.
-- Verified editable install/import: `/workspaces/scientific-api/.venv/bin/python -c "import scientific_api; print(scientific_api.__file__)"` now resolves to the package root after relocation.
-
-### Files Modified
-- .gitignore
-- .devcontainer/devcontainer.json
-- pyproject.toml
-- TECHNICAL_PLAN.md (structure + hygiene checklist updates)
-- app/services/experiment_runner.py (imports → `scientific_api.ml`)
-- scientific_api/ml/** (path relocation + import fixes across graphs, features, models, data_quantum)
-- scientific_api/storage/__init__.py
-- scientific_api/storage/registry.py
-
-### Notes / TODO
-- Many root docs are already moved to `docs/` by prior work; current git status is noisy because of those pending moves—did not stage/commit to avoid interfering.
-- No tests run beyond the import smoke check noted above.
-
 ## 2026-02-18 | Repo hygiene and env prep
 
 ### Tasks Completed

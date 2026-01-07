@@ -24,7 +24,7 @@ Dependencies:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
@@ -93,8 +93,10 @@ def build_pairwise_features(
 
     # Extract numeric features
     feature_cols = [
-        col for col in feature_table.columns
-        if col not in {"graph_id", "system_type"} and pd.api.types.is_numeric_dtype(feature_table[col])
+        col
+        for col in feature_table.columns
+        if col not in {"graph_id", "system_type"}
+        and pd.api.types.is_numeric_dtype(feature_table[col])
     ]
     features = feature_table[feature_cols].values
     n_graphs = len(features)
@@ -133,11 +135,13 @@ def build_pairwise_features(
         elif pairwise_method == "product":
             pairwise_feat = f1 * f2
         elif pairwise_method == "combined":
-            pairwise_feat = np.concatenate([
-                np.abs(f1 - f2),  # difference
-                f1 * f2,          # product
-                (f1 + f2) / 2,    # average
-            ])
+            pairwise_feat = np.concatenate(
+                [
+                    np.abs(f1 - f2),  # difference
+                    f1 * f2,  # product
+                    (f1 + f2) / 2,  # average
+                ]
+            )
         else:
             raise ValueError(f"Unknown pairwise_method: {pairwise_method}")
 
@@ -151,13 +155,17 @@ def build_pairwise_features(
         y_distance = np.array([distance_matrix[i, j] for i, j in pairs])
     else:
         # Use Euclidean distance in feature space
-        y_distance = np.array([np.linalg.norm(features[i] - features[j]) for i, j in pairs])
+        y_distance = np.array(
+            [np.linalg.norm(features[i] - features[j]) for i, j in pairs]
+        )
 
     # Convert distance to similarity: sim = 1 / (1 + dist)
     y_similarity = 1.0 / (1.0 + y_distance)
 
     logger.info(f"Pairwise features: {X_pairwise.shape}")
-    logger.info(f"Similarity range: [{y_similarity.min():.4f}, {y_similarity.max():.4f}]")
+    logger.info(
+        f"Similarity range: [{y_similarity.min():.4f}, {y_similarity.max():.4f}]"
+    )
 
     return X_pairwise, y_similarity
 
@@ -283,7 +291,9 @@ def evaluate_similarity_regressors(
         mae = mean_absolute_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
 
-        logger.info(f"{name} - MSE: {mse:.6f}, RMSE: {rmse:.6f}, MAE: {mae:.6f}, R²: {r2:.4f}")
+        logger.info(
+            f"{name} - MSE: {mse:.6f}, RMSE: {rmse:.6f}, MAE: {mae:.6f}, R²: {r2:.4f}"
+        )
 
         # Cross-validation
         cv_r2_mean = np.nan
@@ -296,15 +306,17 @@ def evaluate_similarity_regressors(
             cv_r2_std = np.std(cv_results["test_score"])
             logger.info(f"{name} - CV R²: {cv_r2_mean:.4f} ± {cv_r2_std:.4f}")
 
-        results.append({
-            "model": name,
-            "mse": mse,
-            "rmse": rmse,
-            "mae": mae,
-            "r2": r2,
-            "cv_r2_mean": cv_r2_mean,
-            "cv_r2_std": cv_r2_std,
-        })
+        results.append(
+            {
+                "model": name,
+                "mse": mse,
+                "rmse": rmse,
+                "mae": mae,
+                "r2": r2,
+                "cv_r2_mean": cv_r2_mean,
+                "cv_r2_std": cv_r2_std,
+            }
+        )
 
     results_df = pd.DataFrame(results)
     logger.info(f"Evaluation complete. Results:\n{results_df}")
@@ -364,11 +376,13 @@ def predict_similarity(
         elif pairwise_method == "product":
             pairwise_feat = f1 * f2
         elif pairwise_method == "combined":
-            pairwise_feat = np.concatenate([
-                np.abs(f1 - f2),
-                f1 * f2,
-                (f1 + f2) / 2,
-            ])
+            pairwise_feat = np.concatenate(
+                [
+                    np.abs(f1 - f2),
+                    f1 * f2,
+                    (f1 + f2) / 2,
+                ]
+            )
         else:
             raise ValueError(f"Unknown pairwise_method: {pairwise_method}")
 
@@ -428,7 +442,9 @@ def save_regressor(
     logger.info(f"Regressor saved to {output_path}")
 
 
-def load_regressor(input_path: Path) -> Tuple[Any, Optional[StandardScaler], str, List[str]]:
+def load_regressor(
+    input_path: Path,
+) -> Tuple[Any, Optional[StandardScaler], str, List[str]]:
     """
     Load trained regressor and metadata.
 
@@ -463,7 +479,7 @@ def load_regressor(input_path: Path) -> Tuple[Any, Optional[StandardScaler], str
 # Example usage
 if __name__ == "__main__":
     from app.core.logging import setup_logging
-    from ml.features.feature_table import load_feature_table
+    from scientific_api.ml.features.feature_table import load_feature_table
 
     setup_logging()
 
@@ -508,8 +524,10 @@ if __name__ == "__main__":
         best_model = trained_models[best_model_name]
 
         feature_cols = [
-            col for col in feature_table.columns
-            if col not in {"graph_id", "system_type"} and pd.api.types.is_numeric_dtype(feature_table[col])
+            col
+            for col in feature_table.columns
+            if col not in {"graph_id", "system_type"}
+            and pd.api.types.is_numeric_dtype(feature_table[col])
         ]
 
         output_dir = Path("data/models")
@@ -518,10 +536,14 @@ if __name__ == "__main__":
             scaler,
             "combined",
             feature_cols,
-            output_dir / f"regressor_{best_model_name}.joblib"
+            output_dir / f"regressor_{best_model_name}.joblib",
         )
 
-        logger.info(f"Best model: {best_model_name} (R²={results.loc[results['r2'].idxmax(), 'r2']:.4f})")
+        logger.info(
+            f"Best model: {best_model_name} (R²={results.loc[results['r2'].idxmax(), 'r2']:.4f})"
+        )
     else:
         logger.error(f"Feature table not found at {feature_table_path}")
-        logger.info("Run build_feature_table_from_directory() first to generate feature table")
+        logger.info(
+            "Run build_feature_table_from_directory() first to generate feature table"
+        )

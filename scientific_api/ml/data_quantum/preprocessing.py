@@ -11,9 +11,8 @@ from typing import Dict, Optional, Union
 import numpy as np
 from scipy import sparse
 
-from app.core.config import get_settings
 from app.core.logging import get_logger
-from ml.data_quantum.models import (
+from scientific_api.ml.data_quantum.models import (
     build_hamiltonian_2d,
     create_grid_2d,
     harmonic_oscillator_2d_potential,

@@ -20,7 +20,7 @@ Dependencies:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
@@ -97,8 +97,10 @@ def prepare_classification_data(
         # Use all numeric columns except target and metadata
         exclude_cols = {target_column, "graph_id", "system_type"}
         feature_columns = [
-            col for col in feature_table.columns
-            if col not in exclude_cols and pd.api.types.is_numeric_dtype(feature_table[col])
+            col
+            for col in feature_table.columns
+            if col not in exclude_cols
+            and pd.api.types.is_numeric_dtype(feature_table[col])
         ]
 
     logger.info(f"Using {len(feature_columns)} features for classification")
@@ -120,7 +122,9 @@ def prepare_classification_data(
         y = y[valid_mask]
 
     logger.info(f"Dataset: {X.shape[0]} samples, {X.shape[1]} features")
-    logger.info(f"Class distribution: cosmology={np.sum(y == 0)}, quantum={np.sum(y == 1)}")
+    logger.info(
+        f"Class distribution: cosmology={np.sum(y == 0)}, quantum={np.sum(y == 1)}"
+    )
 
     # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(
@@ -253,7 +257,11 @@ def evaluate_classifiers(
 
         # Predictions
         y_pred = model.predict(X_test)
-        y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
+        y_proba = (
+            model.predict_proba(X_test)[:, 1]
+            if hasattr(model, "predict_proba")
+            else None
+        )
 
         # Metrics
         accuracy = accuracy_score(y_test, y_pred)
@@ -267,7 +275,9 @@ def evaluate_classifiers(
         logger.info(f"{name} - Confusion Matrix:\n{cm}")
 
         # Classification report
-        report = classification_report(y_test, y_pred, target_names=["cosmology", "quantum"])
+        report = classification_report(
+            y_test, y_pred, target_names=["cosmology", "quantum"]
+        )
         logger.info(f"{name} - Classification Report:\n{report}")
 
         # Cross-validation
@@ -279,18 +289,22 @@ def evaluate_classifiers(
             )
             cv_score_mean = np.mean(cv_results["test_score"])
             cv_score_std = np.std(cv_results["test_score"])
-            logger.info(f"{name} - CV Accuracy: {cv_score_mean:.4f} ± {cv_score_std:.4f}")
+            logger.info(
+                f"{name} - CV Accuracy: {cv_score_mean:.4f} ± {cv_score_std:.4f}"
+            )
 
-        results.append({
-            "model": name,
-            "accuracy": accuracy,
-            "precision": precision,
-            "recall": recall,
-            "f1_score": f1,
-            "roc_auc": roc_auc,
-            "cv_score_mean": cv_score_mean,
-            "cv_score_std": cv_score_std,
-        })
+        results.append(
+            {
+                "model": name,
+                "accuracy": accuracy,
+                "precision": precision,
+                "recall": recall,
+                "f1_score": f1,
+                "roc_auc": roc_auc,
+                "cv_score_mean": cv_score_mean,
+                "cv_score_std": cv_score_std,
+            }
+        )
 
     results_df = pd.DataFrame(results)
     logger.info(f"Evaluation complete. Results:\n{results_df}")
@@ -337,7 +351,9 @@ def predict_graph_type(
         if hasattr(model, "predict_proba"):
             return model.predict_proba(features)[:, 1]
         else:
-            logger.warning("Model does not support probability estimates, returning class labels")
+            logger.warning(
+                "Model does not support probability estimates, returning class labels"
+            )
             return model.predict(features)
     else:
         return model.predict(features)
@@ -381,7 +397,9 @@ def save_classifier(
     logger.info(f"Classifier saved to {output_path}")
 
 
-def load_classifier(input_path: Path) -> Tuple[Any, Optional[StandardScaler], List[str]]:
+def load_classifier(
+    input_path: Path,
+) -> Tuple[Any, Optional[StandardScaler], List[str]]:
     """
     Load trained classifier and metadata.
 
@@ -413,7 +431,7 @@ def load_classifier(input_path: Path) -> Tuple[Any, Optional[StandardScaler], Li
 # Example usage
 if __name__ == "__main__":
     from app.core.logging import setup_logging
-    from ml.features.feature_table import load_feature_table
+    from scientific_api.ml.features.feature_table import load_feature_table
 
     setup_logging()
 
@@ -446,8 +464,10 @@ if __name__ == "__main__":
         best_model = trained_models[best_model_name]
 
         feature_columns = [
-            col for col in feature_table.columns
-            if col not in {"system_type", "graph_id"} and pd.api.types.is_numeric_dtype(feature_table[col])
+            col
+            for col in feature_table.columns
+            if col not in {"system_type", "graph_id"}
+            and pd.api.types.is_numeric_dtype(feature_table[col])
         ]
 
         output_dir = Path("data/models")
@@ -455,10 +475,14 @@ if __name__ == "__main__":
             best_model,
             scaler,
             feature_columns,
-            output_dir / f"classifier_{best_model_name}.joblib"
+            output_dir / f"classifier_{best_model_name}.joblib",
         )
 
-        logger.info(f"Best model: {best_model_name} (F1={results.loc[results['f1_score'].idxmax(), 'f1_score']:.4f})")
+        logger.info(
+            f"Best model: {best_model_name} (F1={results.loc[results['f1_score'].idxmax(), 'f1_score']:.4f})"
+        )
     else:
         logger.error(f"Feature table not found at {feature_table_path}")
-        logger.info("Run build_feature_table_from_directory() first to generate feature table")
+        logger.info(
+            "Run build_feature_table_from_directory() first to generate feature table"
+        )
