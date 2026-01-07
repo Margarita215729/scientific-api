@@ -18,7 +18,7 @@
 			}
 		}
 	},
-	"postCreateCommand": "apt-get update && apt-get install -y git-lfs build-essential libpq-dev && git lfs install && python -m venv .venv && . .venv/bin/activate && pip install -U pip && pip install -e . && pip install numpy pandas scipy scikit-learn matplotlib pyarrow pyyaml httpx astropy tqdm networkx && pip install -r requirements.txt",
+	"postCreateCommand": "bash .devcontainer/postCreate.sh && apt-get update && apt-get install -y git-lfs build-essential libpq-dev && git lfs install && python -m venv .venv && . .venv/bin/activate && pip install -U pip && pip install -e . && pip install numpy pandas scipy scikit-learn matplotlib pyarrow pyyaml httpx astropy tqdm networkx && pip install -r requirements.txt",
 	"forwardPorts": [
 		8000
 	],

@@ -187,6 +187,9 @@ Tasks for you:
      - Provide `get_logger(name: str)` for consistent logger creation.
    - Use this logger in service and API layers instead of print statements.
 
+5. **Repository hygiene**
+   - [x] Ignore locally downloaded/built CPython sources and archives to avoid committing vendor artifacts (e.g., `Python-3.11.9/`, `Python-*.tgz`).
+
 ---
 
 ## 5. Data Ingestion and Preprocessing

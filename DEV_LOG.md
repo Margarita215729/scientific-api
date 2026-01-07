@@ -1,5 +1,20 @@
 # Development Log
 
+## 2026-02-18 | Repo hygiene and env prep
+
+### Tasks Completed
+- Removed accidentally added CPython 3.11.9 source tree and tarball; updated `.gitignore` to block `Python-*/` and `Python-*.tgz` artifacts.
+- Confirmed devcontainer post-create script for git-lfs is present; devcontainer.json change remains staged for commit.
+- Updated TECHNICAL_PLAN.md to record the repository hygiene rule.
+
+### Files Modified
+- .gitignore
+- TECHNICAL_PLAN.md
+
+### Notes / TODO
+- Pending: commit `.devcontainer/postCreate.sh` and updated `devcontainer.json` alongside prior packaging changes.
+- No tests were run; changes were repository housekeeping only.
+
 ## 2025-02-17 | Notebooks: Pipeline & Experiments
 
 ### Tasks Completed

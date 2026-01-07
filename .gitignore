@@ -226,6 +226,9 @@ dmypy.json
 __pycache__/
 *.pyc
 
+# Local Python source builds/artifacts
+Python-*.tgz
+Python-*/
 # Data directories (too large for deployment)
 galaxy_data/
 data/
