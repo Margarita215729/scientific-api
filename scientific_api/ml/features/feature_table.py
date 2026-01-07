@@ -21,6 +21,7 @@ from scientific_api.ml.features.spectral import (
     compute_spectral_features,
 )
 from scientific_api.ml.features.topology import compute_topology_features
+from scientific_api.storage.paths import ensure_dirs
 
 logger = get_logger(__name__)
 
@@ -240,7 +241,7 @@ def save_feature_table(
         ValueError: If format is not supported.
     """
     output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dirs([output_path.parent])
 
     logger.info(f"Saving feature table to {output_path}")
 

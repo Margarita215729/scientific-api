@@ -8,6 +8,7 @@
 - Moved the canonical ML stack under `scientific_api/ml` and updated all imports plus packaging rules; `pyproject.toml` now packages `scientific_api*` and `app*` only.
 - Added `scientific_api/storage/__init__.py` and kept the new manifest helper `scientific_api/storage/registry.py` usable via package imports.
 - Verified editable install/import: `/workspaces/scientific-api/.venv/bin/python -c "import scientific_api; print(scientific_api.__file__)"` now resolves to the package root after relocation.
+- Routed experiment artifacts through canonical outputs base (fallback to storage paths) and centralized directory creation with `ensure_dirs`; feature table saves now ensure parent directories exist.
 
 ### Files Modified
 - .gitignore
@@ -18,6 +19,7 @@
 - scientific_api/ml/** (path relocation + import fixes across graphs, features, models, data_quantum)
 - scientific_api/storage/__init__.py
 - scientific_api/storage/registry.py
+- scientific_api/ml/features/feature_table.py
 
 ### Notes / TODO
 - Many root docs are already moved to `docs/` by prior work; current git status is noisy because of those pending moves—did not stage/commit to avoid interfering.

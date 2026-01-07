@@ -70,6 +70,7 @@ from scientific_api.ml.models.similarity_regression import (
     save_regressor,
     train_similarity_regressors,
 )
+from scientific_api.storage.paths import ensure_dirs, get_outputs_dir
 
 logger = logging.getLogger(__name__)
 
@@ -96,23 +97,25 @@ class ExperimentRunner:
         self.config = config
         self.settings = get_settings()
 
-        # Data directories
-        self.data_root = self.settings.DATA_ROOT
-        self.experiment_dir = self.data_root / "experiments" / experiment_id
+        # Data directories (canonical outputs/experiments)
+        configured_root = getattr(self.settings, "DATA_ROOT", None)
+        base_root = Path(configured_root) if configured_root else get_outputs_dir()
+        self.experiment_dir = base_root / "experiments" / experiment_id
         self.graphs_dir = self.experiment_dir / "graphs"
         self.features_dir = self.experiment_dir / "features"
         self.models_dir = self.experiment_dir / "models"
         self.distances_dir = self.experiment_dir / "distances"
 
         # Create directories
-        for directory in [
-            self.experiment_dir,
-            self.graphs_dir,
-            self.features_dir,
-            self.models_dir,
-            self.distances_dir,
-        ]:
-            directory.mkdir(parents=True, exist_ok=True)
+        ensure_dirs(
+            [
+                self.experiment_dir,
+                self.graphs_dir,
+                self.features_dir,
+                self.models_dir,
+                self.distances_dir,
+            ]
+        )
 
         # Storage for pipeline results
         self.cosmology_graphs: List[nx.Graph] = []

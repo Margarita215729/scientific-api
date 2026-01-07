@@ -76,6 +76,7 @@ reports/
 # Logs
 *.log
 logs/
+DEV_LOG.md
 
 # Temporary files
 tmp/
