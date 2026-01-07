@@ -232,3 +232,6 @@ data/
 *.fits
 *.h5
 *.parquet
+
+# Project artifacts
+LogFiles/
