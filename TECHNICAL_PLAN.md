@@ -483,8 +483,8 @@ Tasks:
      - ✅ `GET /experiments/{id}/status` — get execution status and progress.
      - ✅ `GET /experiments/` — list experiments with filters.
      - ✅ `DELETE /experiments/{id}` — delete experiment.
-     - [ ] `GET /experiments/{id}/graphs/{system_type}` — provide graphs for visualization.
-     - [ ] `GET /experiments/{id}/plots/{plot_type}` — provide plot data or images.
+   - [x] `GET /experiments/{id}/graphs/{system_type}` — provide graphs for visualization.
+   - [x] `GET /experiments/{id}/plots/{plot_type}` — provide plot data or images.
 
 2. ✅ Register these routes in the main FastAPI application module.
 3. ✅ Ensure OpenAPI schema is generated correctly and endpoints have clear request and response models.

@@ -1,5 +1,22 @@
 # Development Log
 
+## 2026-02-19 | Experiment visualization endpoints
+
+### Tasks Completed
+- Saved cosmology and quantum graphs to GraphML during experiment runs and surfaced their directories in results metadata.
+- Fixed distance matrix persistence by using the existing GW saver with graph IDs and numpy-based spectral/distribution saves.
+- Added FastAPI endpoints to return serialized graphs and plot-ready data (distance heatmaps, feature means) with size safeguards.
+- Updated TECHNICAL_PLAN.md to mark the new experiment visualization routes as complete.
+
+### Files Modified
+- app/services/experiment_runner.py
+- app/api/routes/experiments.py
+- TECHNICAL_PLAN.md
+
+### Notes / TODO
+- No automated tests were run; run a smoke experiment to ensure graph saving and endpoints work end-to-end once data assets are available.
+- Visualization endpoints rely on GraphML outputs under DATA_ROOT/experiments/<id>/graphs.
+
 ## 2026-02-18 | Repo hygiene and env prep
 
 ### Tasks Completed
