@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scientific-api"
-version = "0.1.0"
-description = "Scientific API ingestion, graph corpus, and ML pipeline"
+version = "0.2.0"
+description = "Scientific-API: cosmology ingestion + quantum graph ensembles + graph comparison (VKR)"
 requires-python = ">=3.11,<3.12"
 dependencies = [
   "numpy",
@@ -19,9 +19,9 @@ dependencies = [
   "astropy",
   "tqdm",
   "networkx",
-  "pydantic>=2",
-  "pydantic-settings>=2",
+  "joblib",
 ]
 
+
 [tool.setuptools.packages.find]
-include = ["scientific_api*", "app*"]
+include = ["scientific_api*"]

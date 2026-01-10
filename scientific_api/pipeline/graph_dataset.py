@@ -9,8 +9,10 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 
-GRAPH_ROOT = Path("outputs/datasets/graphs")
-REGISTRY_PATH = Path("outputs/datasets/graph_registry.csv")
+from scientific_api.storage.paths import ensure_dirs, get_outputs_dir
+
+GRAPH_ROOT = get_outputs_dir() / "datasets" / "graphs"
+REGISTRY_PATH = get_outputs_dir() / "datasets" / "graph_registry.csv"
 
 
 def _load_points(preset: str, source: str) -> pd.DataFrame:
@@ -106,6 +108,76 @@ def build_graph_corpus(
                     }
                 )
     registry = pd.DataFrame(registry_rows)
-    REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dirs([REGISTRY_PATH.parent])
     registry.to_csv(REGISTRY_PATH, index=False)
     return registry
+
+
+def build_corpus(
+    preset_name: str,
+    source: str,
+    n_graphs: int,
+    L_mpc: float,
+    k: int,
+    seed: int = 42,
+) -> pd.DataFrame:
+    """Stable callable for notebooks: build graph corpus for one preset/source.
+
+    Saves nodes/edges parquet per graph and updates a global registry CSV.
+    """
+
+    rng = np.random.default_rng(seed)
+    df = _load_points(preset_name, source)
+    out_dir = GRAPH_ROOT / preset_name / source
+    ensure_dirs([out_dir, REGISTRY_PATH.parent])
+
+    registry_rows: List[Dict] = []
+    for idx in range(n_graphs):
+        graph_id = f"{preset_name}__{source}__{idx:04d}"
+        sub, center = _sample_window(
+            df,
+            window=L_mpc,
+            rng=rng,
+            min_nodes=800,
+            max_nodes=4000,
+        )
+        coords = sub[["x_mpc", "y_mpc", "z_mpc"]].to_numpy()
+        edges = _build_knn_edges(coords, k)
+
+        nodes_path = out_dir / f"{graph_id}_nodes.parquet"
+        edges_path = out_dir / f"{graph_id}_edges.parquet"
+        sub.to_parquet(nodes_path, index=False)
+        edges.to_parquet(edges_path, index=False)
+
+        registry_rows.append(
+            {
+                "preset": preset_name,
+                "source": source,
+                "graph_id": graph_id,
+                "n_nodes": len(sub),
+                "n_edges": len(edges),
+                "center_x": center[0],
+                "center_y": center[1],
+                "center_z": center[2],
+                "path_nodes": str(nodes_path),
+                "path_edges": str(edges_path),
+            }
+        )
+
+    new_registry = pd.DataFrame(registry_rows)
+
+    if REGISTRY_PATH.exists():
+        existing = pd.read_csv(REGISTRY_PATH)
+        # drop potential duplicates for same preset/source to keep latest build
+        existing = existing[
+            ~(
+                (existing["preset"] == preset_name)
+                & (existing["source"] == source)
+            )
+        ]
+        combined = pd.concat([existing, new_registry], ignore_index=True)
+    else:
+        combined = new_registry
+
+    combined.to_csv(REGISTRY_PATH, index=False)
+    return new_registry

@@ -123,6 +123,20 @@ def run_ingest(preset_name: str) -> Tuple[str, DatasetManifest]:
     return summary, manifest
 
 
+def run(preset_name: str) -> Dict:
+    """Public callable for notebooks and scripts.
+
+    Returns a dict with paths and counts to be used downstream.
+    """
+
+    summary, manifest = run_ingest(preset_name)
+    return {
+        "preset": preset_name,
+        "summary": summary,
+        "manifest": manifest.model_dump() if hasattr(manifest, "model_dump") else manifest.__dict__,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Космологический ingestion SDSS/DESI")
     parser.add_argument("--preset", required=True, choices=["low_z", "high_z"])

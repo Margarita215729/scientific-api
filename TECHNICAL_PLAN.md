@@ -595,6 +595,7 @@ Mark items as completed when the corresponding tasks are fully implemented and t
 - [ ] Classification models implemented and evaluated.
 - [ ] Similarity regression models implemented.
 - [ ] Clustering routines implemented.
+- [x] Notebook-facing `train_and_evaluate` baseline helper exported for stable reuse in research notebooks.
 
 ### Metrics
 
@@ -612,7 +613,10 @@ Mark items as completed when the corresponding tasks are fully implemented and t
 
 ### Visualizations and Notebooks
 
-- [ ] Core notebooks created and runnable.
+- [x] Core notebooks created and runnable.
+- [x] Notebook 01 uses REAL data (SDSS DR17 galaxies + quantum potential models).
+- [x] Notebook 01 performs graph-based classification (cosmology vs quantum).
+- [ ] Notebook 02 extended with Gromov-Wasserstein and advanced analysis.
 - [ ] Plots suitable for thesis included.
 
 ### Quality

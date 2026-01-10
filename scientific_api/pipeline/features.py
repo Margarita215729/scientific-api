@@ -12,6 +12,10 @@ from scipy.sparse.linalg import eigsh
 
 REPORT_FEATURES_PARQUET = Path("reports/tables/graph_features.parquet")
 REPORT_FEATURES_CSV = Path("reports/tables/graph_features.csv")
+from scientific_api.storage.paths import ensure_dirs, get_reports_dir
+
+REPORT_FEATURES_PARQUET = get_reports_dir() / "tables" / "graph_features.parquet"
+REPORT_FEATURES_CSV = get_reports_dir() / "tables" / "graph_features.csv"
 
 
 def _build_graph(nodes_path: Path, edges_path: Path) -> nx.Graph:
@@ -104,7 +108,14 @@ def compute_features(registry: pd.DataFrame, k_eigs: int = 30) -> pd.DataFrame:
             }
         )
     features = pd.DataFrame(rows)
-    REPORT_FEATURES_PARQUET.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dirs([REPORT_FEATURES_PARQUET.parent])
     features.to_parquet(REPORT_FEATURES_PARQUET, index=False)
     features.to_csv(REPORT_FEATURES_CSV, index=False)
     return features
+
+
+def compute_all_graph_features(registry_csv_path: str) -> pd.DataFrame:
+    """Stable callable for notebooks: load registry CSV and compute features."""
+
+    registry = pd.read_csv(registry_csv_path)
+    return compute_features(registry)
