@@ -121,6 +121,7 @@ lib64/
 parts/
 sdist/
 var/
+data/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
@@ -244,6 +245,5 @@ data/
 *.fits
 *.h5
 *.parquet
-
 # Project artifacts
 LogFiles/
