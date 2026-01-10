@@ -22,6 +22,12 @@ dependencies = [
   "joblib",
 ]
 
-
+[project.optional-dependencies]
+cosmology = [
+  "astropy>=6.0",
+]
+dev = [
+  "pytest>=8.0",
+]
 [tool.setuptools.packages.find]
 include = ["scientific_api*"]
