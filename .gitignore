@@ -53,6 +53,13 @@ deploy.env
 .Trashes
 ehthumbs.db
 Thumbs.db
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+outputs/
+*.db
 
 # Environment variables
 .env
