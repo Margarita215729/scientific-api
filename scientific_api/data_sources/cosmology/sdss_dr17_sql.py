@@ -7,6 +7,7 @@ import json
 import logging
 import math
 import subprocess
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -18,7 +19,10 @@ logger = logging.getLogger(__name__)
 
 SDSS_SQL_URL = "https://skyserver.sdss.org/dr17/SkyServerWS/SearchTools/SqlSearch"
 
-REQUIRED_COLUMNS = ["obj_id", "ra_deg", "dec_deg", "z", "zwarning", "class", "mag_r"]
+SKYSERVER_SQL_URL = "https://skyserver.sdss.org/dr17/SkyServerWS/SearchTools/SqlSearch"
+
+REQUIRED_COLUMNS = ["obj_id", "ra_deg",
+                    "dec_deg", "z", "zwarning", "class", "mag_r"]
 
 
 def _git_hash() -> str:
@@ -35,24 +39,41 @@ def _git_hash() -> str:
         return "unknown"
 
 
-def _run_query(sql: str) -> pd.DataFrame:
-    retries = [0, 2, 4, 8]
+def _run_query(sql: str, *, max_retries: int = 6) -> pd.DataFrame:
+    """
+    Robust SDSS SkyServer SQL query.
+    Uses GET cmd=...&format=csv which is the most compatible access pattern.
+    """
     last_exc: Exception | None = None
-    for backoff in retries:
-        if backoff:
-            import time
 
-            time.sleep(backoff)
-        try:
-            with httpx.Client(timeout=60.0, follow_redirects=True) as client:
-                resp = client.post(SDSS_SQL_URL, data={"cmd": sql, "format": "csv"})
-                resp.raise_for_status()
-                df = pd.read_csv(io.StringIO(resp.text))
+    headers = {
+        "User-Agent": "scientific-api/1.0 (thesis ingestion; contact: github.com/Margarita215729)"
+    }
+
+    with httpx.Client(timeout=60.0, headers=headers, follow_redirects=True) as client:
+        for attempt in range(1, max_retries + 1):
+            try:
+                r = client.get(SKYSERVER_SQL_URL, params={
+                               "cmd": sql, "format": "csv"})
+                r.raise_for_status()
+
+                # SkyServer CSV sometimes starts with a comment line
+                text = r.text.lstrip("\ufeff")
+                if text.startswith("#"):
+                    # drop first comment line
+                    text = "\n".join(text.splitlines()[1:])
+
+                df = pd.read_csv(io.StringIO(text))
                 return df
-        except Exception as exc:  # pylint: disable=broad-except
-            last_exc = exc
-            logger.warning("Попытка запроса не удалась: %s", exc)
-    raise RuntimeError(f"Все попытки запросить SDSS DR17 исчерпаны: {last_exc}")
+
+            except Exception as exc:
+                last_exc = exc
+                wait = min(2 ** attempt, 60)
+                logger.warning("SDSS query failed (attempt %d/%d): %s; sleeping %ds",
+                               attempt, max_retries, exc, wait)
+                time.sleep(wait)
+
+    raise RuntimeError(f"SDSS DR17 query exhausted retries: {last_exc}")
 
 
 def _build_sql(tile: Tuple[float, float], preset: Dict) -> str:
@@ -67,7 +88,7 @@ def _build_sql(tile: Tuple[float, float], preset: Dict) -> str:
     sql = f"""
 SELECT TOP {limit}
   p.objid        AS obj_id,
-  p.ra           AS ra_deg,
+  p.ra           AS ra_deg,ёъ
   p.dec          AS dec_deg,
   s.z            AS z,
   s.zWarning     AS zwarning,
